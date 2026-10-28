@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>學校公務財產與物品智慧管理系統</title>
   
-  <!-- CSS 套件 -->
+  <!-- Bootstrap 5 & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   
@@ -38,8 +38,8 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 80%;
-      height: 90px;
+      width: 82%;
+      height: 95px;
       border: 2px dashed #00ff66;
       border-radius: 8px;
       box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
@@ -49,15 +49,15 @@
       justify-content: center;
     }
     .scan-aim-line {
-      width: 90%;
+      width: 92%;
       height: 2px;
       background-color: #ff3b30;
       box-shadow: 0 0 8px #ff3b30;
       animation: scanAnim 1.8s infinite ease-in-out;
     }
     @keyframes scanAnim {
-      0%, 100% { transform: translateY(-30px); }
-      50% { transform: translateY(30px); }
+      0%, 100% { transform: translateY(-32px); }
+      50% { transform: translateY(32px); }
     }
     .timeline {
       border-left: 2px solid #dee2e6;
@@ -88,10 +88,9 @@
     }
   </style>
 
-  <!-- JS 套件 -->
+  <!-- 第三方套件：SheetJS、html5-qrcode、Firebase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <!-- Firebase Compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
@@ -100,21 +99,23 @@
 <!-- 頂部導覽列 -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="#">
-      <i class="bi bi-box-seam me-2"></i>財產管理與現場盤點系統
+    <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+      <i class="bi bi-box-seam me-2"></i>
+      <span>財產管理系統</span>
+      <span id="cloudStatusBadge" class="badge bg-warning text-dark ms-2 fw-normal" style="font-size: 0.72rem;">連線中...</span>
     </a>
     <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-sm btn-outline-light" onclick="openScannerModal()">
-        <i class="bi bi-camera me-1"></i>相機盤點
+      <button class="btn btn-sm btn-light fw-bold text-primary" onclick="openScannerModal()">
+        <i class="bi bi-camera-fill me-1"></i>相機盤點
       </button>
-      <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#settingsModal">
-        <i class="bi bi-gear"></i>
+      <button class="btn btn-sm btn-outline-light" onclick="clearAllData()" title="清空重置資料庫">
+        <i class="bi bi-trash3"></i>
       </button>
     </div>
   </div>
 </nav>
 
-<!-- 狀態摘要條 -->
+<!-- 狀態摘要與匯入匯出列 -->
 <div class="sticky-summary py-2 border-bottom">
   <div class="container-fluid d-flex flex-wrap align-items-center justify-content-between gap-2">
     <div class="d-flex gap-3 align-items-center">
@@ -143,7 +144,7 @@
         <div class="col-12 col-md-4">
           <div class="input-group">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" id="searchInput" class="form-control" placeholder="搜尋財產編號、序號、品名、保管人..." oninput="renderTable()">
+            <input type="text" id="searchInput" class="form-control" placeholder="搜尋財產編號、條碼號、品名、保管人..." oninput="renderTable()">
             <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()"><i class="bi bi-x"></i></button>
           </div>
         </div>
@@ -171,7 +172,7 @@
     </div>
   </div>
 
-  <!-- 設備清單卡片 -->
+  <!-- 設備清單表格 -->
   <div class="card shadow-sm border-0">
     <div class="table-responsive" style="max-height: 70vh;">
       <table class="table table-hover align-middle mb-0" id="assetTable">
@@ -190,7 +191,7 @@
           <tr>
             <td colspan="7" class="text-center py-5 text-muted">
               <i class="bi bi-folder2-open display-6 d-block mb-2"></i>
-              尚未載入任何資料，請點擊上方「匯入 Excel」清冊開始管理
+              尚未載入任何財產資料，請點擊上方「匯入 Excel」上傳清冊
             </td>
           </tr>
         </tbody>
@@ -204,7 +205,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header bg-dark text-white py-2">
-        <h6 class="modal-title"><i class="bi bi-camera me-2"></i>Code 39 連續快速盤點模式</h6>
+        <h6 class="modal-title"><i class="bi bi-upc-scan me-2"></i>Code 39 連續快速盤點模式</h6>
         <button type="button" class="btn-close btn-close-white" onclick="closeScannerModal()"></button>
       </div>
       <div class="modal-body p-2 bg-black text-center">
@@ -214,15 +215,14 @@
             <div class="scan-aim-line"></div>
           </div>
         </div>
-        <!-- 盤點最新反饋動態框 -->
         <div id="scanFeedback" class="mt-2 p-2 rounded text-start text-white bg-dark small" style="min-height: 60px;">
-          請將手機鏡頭水平對準設備標籤上的條碼...
+          請將手機鏡頭水平對準財產標籤上的條碼...
         </div>
       </div>
       <div class="modal-footer py-1 bg-light justify-content-between">
-        <button class="btn btn-sm btn-outline-secondary" onclick="toggleTorch()"><i class="bi bi-lightbulb me-1"></i>手電筒</button>
-        <span class="small text-muted" id="scanCounterText">本次掃描成功: 0 件</span>
-        <button type="button" class="btn btn-sm btn-secondary" onclick="closeScannerModal()">關閉</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="toggleTorch()"><i class="bi bi-lightbulb me-1"></i>補光燈</button>
+        <span class="small text-muted fw-bold" id="scanCounterText">本次掃描成功: 0 件</span>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="closeScannerModal()">完成關閉</button>
       </div>
     </div>
   </div>
@@ -233,7 +233,7 @@
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-light">
-        <h5 class="modal-title fw-bold" id="detailModalTitle">設備詳情與異動</h5>
+        <h5 class="modal-title fw-bold">設備詳情與異動管理</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -244,8 +244,8 @@
             <input type="text" id="editName" class="form-control" readonly>
           </div>
           <div class="col-md-6">
-            <label class="form-label text-muted small mb-1">財產編號 (條碼號)</label>
-            <input type="text" id="editAssetNo" class="form-control" readonly>
+            <label class="form-label text-muted small mb-1">條碼序號 (分類編號)</label>
+            <input type="text" id="editAssetNo" class="form-control font-monospace" readonly>
           </div>
           <div class="col-12">
             <label class="form-label text-muted small mb-1">型號／規格</label>
@@ -272,26 +272,25 @@
 
           <div class="col-12" id="scrapReasonBox" style="display:none;">
             <label class="form-label text-danger fw-bold mb-1">報廢原因註記</label>
-            <input type="text" id="editScrapReason" class="form-control" placeholder="例：無維修價值、零組件停產毀損">
+            <input type="text" id="editScrapReason" class="form-control" placeholder="例：逾使用年限且不堪使用、零件停產無法維修">
           </div>
 
           <div class="col-12">
             <label class="form-label fw-bold mb-1">最新盤點備註</label>
-            <textarea id="editNotes" class="form-control" rows="2" placeholder="備註目前設備狀況、配件明細或異常通報..."></textarea>
+            <textarea id="editNotes" class="form-control" rows="2" placeholder="輸入設備狀況、放置細節或維修紀錄..."></textarea>
           </div>
 
-          <!-- 唯讀屬性條列 -->
           <div class="col-12">
             <div class="p-2 bg-light rounded small text-muted d-flex flex-wrap gap-3">
               <span>購置日期：<strong id="viewPurchaseDate">-</strong></span>
-              <span>法定年限：<strong id="viewLifespan">-</strong> 年</span>
+              <span>使用年限：<strong id="viewLifespan">-</strong> 年</span>
+              <span>已使用：<strong id="viewUsedYears">-</strong></span>
               <span>總價：NT$ <strong id="viewPrice">-</strong></span>
               <span>舊登錄號：<strong id="viewOldNo">-</strong></span>
-              <span>盤點註記：<span id="viewCheckedBadge" class="badge bg-secondary">未盤點</span></span>
+              <span>盤點狀態：<span id="viewCheckedBadge" class="badge bg-secondary">未盤點</span></span>
             </div>
           </div>
 
-          <!-- 歷史異動軌跡 -->
           <div class="col-12">
             <h6 class="fw-bold border-bottom pb-1 mt-2">異動履歷軌跡 (Audit Log)</h6>
             <div class="timeline mt-2" id="historyTimeline">
@@ -313,51 +312,26 @@
   </div>
 </div>
 
-<!-- 系統設定 Modal (Firebase & 資料管理) -->
-<div class="modal fade" id="settingsModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-light">
-        <h5 class="modal-title fw-bold"><i class="bi bi-cloud-arrow-up me-2"></i>系統與雲端同步設定</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label fw-bold">目前儲存引擎</label>
-          <div id="storageEngineBadge">
-            <span class="badge bg-success p-2 fs-6">本機 IndexedDB (離線獨立模式)</span>
-          </div>
-          <div class="form-text">在未填寫 Firebase Config 前，所有異動均安全保存在本機瀏覽器中。</div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label fw-bold">Firebase Realtime Database 連線配置 (JSON)</label>
-          <textarea id="firebaseConfigInput" class="form-control font-monospace small" rows="5" placeholder='{\n  "apiKey": "...",\n  "databaseURL": "https://your-db.firebaseio.com",\n  "projectId": "..."\n}'></textarea>
-          <div class="form-text">貼入後即可開啟跨裝置即時雙向同步（手機現場掃描，電腦後台即時更新）。</div>
-        </div>
-
-        <div class="d-flex justify-content-end gap-2 mb-3">
-          <button class="btn btn-sm btn-outline-secondary" onclick="clearFirebaseConfig()">清除配置 (返回本機模式)</button>
-          <button class="btn btn-sm btn-primary" onclick="saveFirebaseConfig()">儲存並連線 Firebase</button>
-        </div>
-        <hr>
-        <div class="text-danger small fw-bold mb-2">危險操作區</div>
-        <button class="btn btn-sm btn-outline-danger" onclick="clearAllData()">
-          <i class="bi bi-trash3 me-1"></i>清空現有全部財產資料庫
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 /**
- * 核心應用邏輯
+ * 1. 直接內建 Firebase 連線設定 (asset-3fb12)
  */
-let db = null; // IndexedDB
-let firebaseDb = null;
-let assetsMap = new Map(); // assetKey -> Asset Object
+const firebaseConfig = {
+  apiKey: "AIzaSyDRF9uirLpU2pIR2-rTMvSm4Fj_gemSoNo",
+  authDomain: "asset-3fb12.firebaseapp.com",
+  databaseURL: "https://asset-3fb12-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "asset-3fb12",
+  storageBucket: "asset-3fb12.firebasestorage.app",
+  messagingSenderId: "427140371493",
+  appId: "1:427140371493:web:8008b2405dafed8daddbcc"
+};
+
+firebase.initializeApp(firebaseConfig);
+const firebaseDb = firebase.database();
+
+let db = null; // 本機 IndexedDB 快取備援
+let assetsMap = new Map();
 let locationsSet = new Set();
 let html5QrCode = null;
 let lastScannedCode = '';
@@ -365,130 +339,86 @@ let scanCooldownTimer = null;
 let scanSuccessCount = 0;
 let isTorchOn = false;
 
-// 初始化 IndexedDB
+// 初始化本機 IndexedDB 快取
 function initIndexedDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('SchoolAssetDB', 1);
+  return new Promise((resolve) => {
+    const request = indexedDB.open('SchoolAssetDB_Direct', 1);
     request.onupgradeneeded = (e) => {
       const idb = e.target.result;
       if (!idb.objectStoreNames.contains('assets')) {
         idb.createObjectStore('assets', { keyPath: 'assetKey' });
-      }
-      if (!idb.objectStoreNames.contains('settings')) {
-        idb.createObjectStore('settings', { keyPath: 'id' });
       }
     };
     request.onsuccess = (e) => {
       db = e.target.result;
       resolve(db);
     };
-    request.onerror = (e) => reject(e);
+    request.onerror = () => resolve(null);
   });
-}
-
-// 載入本地設定與 Firebase 連線
-async function initStorage() {
-  await initIndexedDB();
-  const savedConfig = localStorage.getItem('fb_config');
-  if (savedConfig) {
-    document.getElementById('firebaseConfigInput').value = savedConfig;
-    connectFirebase(JSON.parse(savedConfig));
-  } else {
-    loadAssetsFromIndexedDB();
-  }
-}
-
-function connectFirebase(config) {
-  try {
-    if (!firebase.apps.length) {
-      firebase.initializeApp(config);
-    }
-    firebaseDb = firebase.database();
-    document.getElementById('storageEngineBadge').innerHTML = 
-      '<span class="badge bg-primary p-2 fs-6"><i class="bi bi-cloud-check me-1"></i>Firebase 雲端同步模式</span>';
-    
-    // 監聽即時更新
-    firebaseDb.ref('assets').on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        assetsMap.clear();
-        locationsSet.clear();
-        Object.keys(data).forEach(key => {
-          assetsMap.set(key, data[key]);
-          if (data[key].location) locationsSet.add(data[key].location);
-          // 同步暫存入本機 IDB
-          saveToIDB(data[key]);
-        });
-        updateLocationSelects();
-        renderTable();
-        updateStats();
-      }
-    });
-  } catch (err) {
-    console.error('Firebase 連線失敗:', err);
-    alert('Firebase 連線設定錯誤，切回本機模式：' + err.message);
-    loadAssetsFromIndexedDB();
-  }
-}
-
-function saveFirebaseConfig() {
-  const val = document.getElementById('firebaseConfigInput').value.trim();
-  if (!val) return;
-  try {
-    const parsed = JSON.parse(val);
-    localStorage.setItem('fb_config', val);
-    connectFirebase(parsed);
-    bootstrap.Modal.getInstance(document.getElementById('settingsModal')).hide();
-    alert('Firebase 設定成功並已連線！');
-  } catch (e) {
-    alert('JSON 格式無效，請確認輸入正確。');
-  }
-}
-
-function clearFirebaseConfig() {
-  localStorage.removeItem('fb_config');
-  alert('已清除雲端配置，將使用本機 IndexedDB 離線模式。');
-  location.reload();
 }
 
 function saveToIDB(asset) {
   if (!db) return;
-  const tx = db.transaction('assets', 'readwrite');
-  tx.objectStore('assets').put(asset);
+  try {
+    const tx = db.transaction('assets', 'readwrite');
+    tx.objectStore('assets').put(asset);
+  } catch (e) {}
 }
 
-function loadAssetsFromIndexedDB() {
-  if (!db) return;
-  const tx = db.transaction('assets', 'readonly');
-  const store = tx.objectStore('assets');
-  const req = store.getAll();
-  req.onsuccess = () => {
+// 啟動雲端即時同步與狀態監聽
+async function initSystem() {
+  await initIndexedDB();
+
+  // 監聽連線狀態
+  firebaseDb.ref('.info/connected').on('value', (snap) => {
+    const badge = document.getElementById('cloudStatusBadge');
+    if (snap.val() === true) {
+      badge.className = 'badge bg-success text-white ms-2 fw-normal';
+      badge.innerHTML = '<i class="bi bi-cloud-check-fill me-1"></i>雲端已同步';
+    } else {
+      badge.className = 'badge bg-warning text-dark ms-2 fw-normal';
+      badge.innerHTML = '<i class="bi bi-cloud-slash me-1"></i>離線暫存中';
+    }
+  });
+
+  // 監聽財產資料節點
+  firebaseDb.ref('assets').on('value', (snapshot) => {
+    const data = snapshot.val();
     assetsMap.clear();
     locationsSet.clear();
-    req.result.forEach(item => {
-      assetsMap.set(item.assetKey, item);
-      if (item.location) locationsSet.add(item.location);
-    });
+    if (data) {
+      Object.keys(data).forEach(key => {
+        const item = data[key];
+        assetsMap.set(key, item);
+        if (item.location) locationsSet.add(item.location);
+        saveToIDB(item);
+      });
+    }
     updateLocationSelects();
     renderTable();
     updateStats();
-  };
+  });
 }
 
-// Excel 匯入與智慧合併
+// 儲存單筆異動
+function saveAsset(asset) {
+  saveToIDB(asset);
+  firebaseDb.ref('assets/' + asset.assetKey).set(asset);
+}
+
+// Excel 清冊匯入與智慧合併 (批次高速上傳)
 function handleExcelUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = (evt) => {
+  reader.onload = async (evt) => {
     try {
       const data = new Uint8Array(evt.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const rawJson = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
 
-      // 尋找表頭欄位所在列
       let headerRowIdx = -1;
       for (let i = 0; i < Math.min(rawJson.length, 10); i++) {
         const rowStr = JSON.stringify(rawJson[i]);
@@ -499,32 +429,31 @@ function handleExcelUpload(e) {
       }
 
       if (headerRowIdx === -1) {
-        alert('無法辨識此清冊格式，未找到「財產編號」表頭列。');
+        alert('無法辨識此清冊格式，找不到「財產編號」表頭列。');
         return;
       }
 
       const headers = rawJson[headerRowIdx].map(h => String(h).trim().replace(/\r?\n/g, ''));
       let importedCount = 0;
       let mergedCount = 0;
+      const batchUpdates = {};
 
       for (let r = headerRowIdx + 1; r < rawJson.length; r++) {
         const row = rawJson[r];
         if (!row || row.length === 0) continue;
 
-        // 構造欄位對照
         let item = {};
         headers.forEach((h, idx) => {
           item[h] = row[idx] !== undefined ? String(row[idx]).trim() : '';
         });
 
-        // 檢查簽章說明列或無效資料列
         const rawPropId = item['財產編號'] || '';
         const propName = item['財產名稱'] || '';
-        if (!rawPropId || !propName || rawPropId.includes('保管人') || rawPropId.includes('說明：')) {
+        if (!rawPropId || !propName || rawPropId.includes('保管人') || rawPropId.includes('說明：') || rawPropId.includes('第 一 聯')) {
           continue;
         }
 
-        // 拆解財產編號（雙行）
+        // 拆解雙行財產編號
         const idParts = rawPropId.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
         let categoryCode = '';
         let assetNo = '';
@@ -535,18 +464,19 @@ function handleExcelUpload(e) {
           assetNo = idParts[0];
         }
 
-        const assetKey = assetNo || categoryCode;
-        if (!assetKey) continue;
+        const rawKey = assetNo || categoryCode;
+        if (!rawKey) continue;
+        const assetKey = rawKey.replace(/[.$#\[\]\/]/g, '_');
 
-        // 拆解保管人 (代碼 + 姓名)
+        // 拆解保管人代號與姓名
         const rawCustodian = item['保管人員'] || '';
         const custodianParts = rawCustodian.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
+        const custodianCode = custodianParts.length > 1 ? custodianParts[0] : '';
         const custodian = custodianParts.length > 1 ? custodianParts[1] : (custodianParts[0] || '');
 
-        // 形式品名清洗
-        const spec = (item['形式品名'] || item['形式/品名'] || '').replace(/\r?\n+/g, ' ');
+        const spec = (item['形式品名'] || item['形式/品名'] || '').replace(/\r?\n+/g, ' ').trim();
 
-        // 智慧合併邏輯：保留使用者已在系統標記的異動狀態
+        // 智慧合併：若雲端已有此財產，保留已異動之地點、保管人、狀態、備註與盤點紀錄
         const existing = assetsMap.get(assetKey);
         let assetObj = {
           assetKey: assetKey,
@@ -561,15 +491,19 @@ function handleExcelUpload(e) {
           purchaseDate: item['購置日期'] || '',
           lifespan: item['使用年限'] || '',
           usedYears: item['已使用年限'] || '',
+          entryDate: item['入帳日期'] || '',
+          dept: item['領用單位'] || '',
+          reserveValue: item['預留殘值'] || '0',
           location: existing ? existing.location : (item['存放地點'] || '未設定'),
           custodian: existing ? existing.custodian : custodian,
+          custodianCode: existing && existing.custodianCode ? existing.custodianCode : custodianCode,
           status: existing ? existing.status : 'in_use',
           scrapReason: existing ? existing.scrapReason : '',
           notes: existing ? existing.notes : (item['備註'] || ''),
           checked: existing ? existing.checked : false,
           checkedTime: existing ? existing.checkedTime : '',
           history: existing && existing.history ? existing.history : [
-            { time: new Date().toLocaleString(), action: '系統匯入建檔', note: '原始清冊匯入' }
+            { time: new Date().toLocaleString(), action: '清冊匯入建檔', note: '原始 Excel 匯入' }
           ]
         };
 
@@ -578,13 +512,17 @@ function handleExcelUpload(e) {
 
         assetsMap.set(assetKey, assetObj);
         if (assetObj.location) locationsSet.add(assetObj.location);
-        saveAsset(assetObj);
+        batchUpdates[assetKey] = assetObj;
+        saveToIDB(assetObj);
       }
+
+      // 一次批次同步至 Firebase
+      await firebaseDb.ref('assets').update(batchUpdates);
 
       updateLocationSelects();
       renderTable();
       updateStats();
-      alert(`Excel 匯入完成！\n新增設備: ${importedCount} 筆\n智慧比對更新: ${mergedCount} 筆`);
+      alert(`Excel 匯入並同步雲端完成！\n新增設備: ${importedCount} 筆\n智慧合併更新: ${mergedCount} 筆`);
     } catch (err) {
       console.error(err);
       alert('解析 Excel 失敗：' + err.message);
@@ -594,14 +532,7 @@ function handleExcelUpload(e) {
   e.target.value = '';
 }
 
-function saveAsset(asset) {
-  saveToIDB(asset);
-  if (firebaseDb) {
-    firebaseDb.ref('assets/' + asset.assetKey).set(asset);
-  }
-}
-
-// 畫面渲染與過濾
+// 渲染設備列表
 function renderTable() {
   const search = document.getElementById('searchInput').value.trim().toLowerCase();
   const filterLoc = document.getElementById('filterLocation').value;
@@ -628,8 +559,7 @@ function renderTable() {
     return;
   }
 
-  // 排序：未盤點優先、或依號碼
-  filtered.sort((a, b) => (a.checked === b.checked ? a.assetKey.localeCompare(b.assetKey) : a.checked ? 1 : -1));
+  filtered.sort((a, b) => (a.checked === b.checked ? String(a.assetKey).localeCompare(String(b.assetKey)) : a.checked ? 1 : -1));
 
   const fragment = document.createDocumentFragment();
   filtered.forEach(item => {
@@ -651,13 +581,14 @@ function renderTable() {
       <td>
         <div class="fw-bold">${item.name}</div>
         <div class="small text-muted text-truncate" style="max-width: 280px;" title="${item.spec}">${item.spec}</div>
+        ${item.notes ? `<div class="small text-info-emphasis"><i class="bi bi-sticky me-1"></i>${item.notes}</div>` : ''}
       </td>
       <td><span class="badge bg-light text-dark border">${item.location || '未設定'}</span></td>
       <td>${item.custodian || '-'}</td>
       <td>${statusBadge}</td>
       <td class="text-end">
         <button class="btn btn-sm btn-outline-primary" onclick="openDetailModal('${item.assetKey}')">
-          <i class="bi bi-pencil-square"></i> 管理
+          <i class="bi bi-pencil-square"></i> 異動
         </button>
       </td>
     `;
@@ -682,6 +613,7 @@ function updateStats() {
 
 function updateLocationSelects() {
   const select = document.getElementById('filterLocation');
+  const currentVal = select.value;
   const datalist = document.getElementById('locationOptions');
   select.innerHTML = '<option value="">全部存放地點</option>';
   datalist.innerHTML = '';
@@ -696,6 +628,7 @@ function updateLocationSelects() {
     dOpt.value = loc;
     datalist.appendChild(dOpt);
   });
+  select.value = currentVal;
 }
 
 function clearSearch() {
@@ -713,7 +646,7 @@ function toggleItemChecked(key, isChecked) {
   renderTable();
 }
 
-// 詳情與異動彈窗
+// 詳情與異動 Modal
 function openDetailModal(key) {
   const asset = assetsMap.get(key);
   if (!asset) return;
@@ -730,6 +663,7 @@ function openDetailModal(key) {
   
   document.getElementById('viewPurchaseDate').innerText = asset.purchaseDate || '-';
   document.getElementById('viewLifespan').innerText = asset.lifespan || '-';
+  document.getElementById('viewUsedYears').innerText = asset.usedYears || '-';
   document.getElementById('viewPrice').innerText = asset.price ? Number(asset.price).toLocaleString() : '-';
   document.getElementById('viewOldNo').innerText = asset.oldNo || '-';
 
@@ -750,7 +684,8 @@ function openDetailModal(key) {
   handleStatusChange();
   renderTimeline(asset.history || []);
 
-  const modal = new bootstrap.Modal(document.getElementById('assetDetailModal'));
+  const modalEl = document.getElementById('assetDetailModal');
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
   modal.show();
 }
 
@@ -812,8 +747,8 @@ function saveAssetDetail() {
     logs.push(`保管人移轉: [${asset.custodian || '-'}] ➔ [${newCus}]`);
     asset.custodian = newCus;
   }
-  if (asset.status !== newStat) {
-    logs.push(`狀態變更: [${asset.status}] ➔ [${newStat}] ${newReason ? '原因:' + newReason : ''}`);
+  if (asset.status !== newStat || asset.scrapReason !== newReason) {
+    logs.push(`狀態變更: [${asset.status}] ➔ [${newStat}] ${newReason ? '(原因: ' + newReason + ')' : ''}`);
     asset.status = newStat;
     asset.scrapReason = newReason;
   }
@@ -836,7 +771,7 @@ function saveAssetDetail() {
   bootstrap.Modal.getInstance(document.getElementById('assetDetailModal')).hide();
 }
 
-// 聲音與震動回饋
+// 音效與震動回饋
 function playBeep(freq = 880, duration = 0.12) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -844,14 +779,12 @@ function playBeep(freq = 880, duration = 0.12) {
     const gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, ctx.currentTime);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + duration);
-  } catch (e) {
-    // 忽略自動播放限制
-  }
+  } catch (e) {}
 }
 
 function triggerVibration() {
@@ -860,7 +793,7 @@ function triggerVibration() {
   }
 }
 
-// 相機連續掃描
+// 行動端相機連續掃描
 function openScannerModal() {
   const modal = new bootstrap.Modal(document.getElementById('scannerModal'));
   modal.show();
@@ -871,7 +804,8 @@ function openScannerModal() {
 
 function closeScannerModal() {
   stopScanner();
-  bootstrap.Modal.getInstance(document.getElementById('scannerModal')).hide();
+  const modalInstance = bootstrap.Modal.getInstance(document.getElementById('scannerModal'));
+  if (modalInstance) modalInstance.hide();
   renderTable();
   updateStats();
 }
@@ -896,9 +830,9 @@ function startScanner() {
     { facingMode: "environment" },
     config,
     onBarcodeScanned,
-    (errorMessage) => { /* 忽略中間每幀未偵測 */ }
+    () => {}
   ).catch(err => {
-    alert("無法啟動相機：請確認網址為 HTTPS 且已允許相機存取權限。\n" + err);
+    alert("無法啟動相機：請確認透過 HTTPS 安全網址開啟並允許相機權限。\n" + err);
   });
 }
 
@@ -916,24 +850,20 @@ function toggleTorch() {
     isTorchOn = !isTorchOn;
     html5QrCode.applyVideoConstraints({
       advanced: [{ torch: isTorchOn }]
-    }).catch(e => alert("目前裝置不支援補光燈控制"));
+    }).catch(() => alert("此裝置或瀏覽器不支援手電筒補光控制"));
   }
 }
 
-// 掃描成功連續處理核心
 function onBarcodeScanned(decodedText) {
   const cleanCode = decodedText.trim();
 
-  // 防重複觸發冷卻（2.5 秒內不重複同一條碼）
   if (cleanCode === lastScannedCode) return;
   lastScannedCode = cleanCode;
   clearTimeout(scanCooldownTimer);
   scanCooldownTimer = setTimeout(() => { lastScannedCode = ''; }, 2500);
 
-  // 比對財產 (精準比對序號、分類號、舊號)
   let found = assetsMap.get(cleanCode);
   if (!found) {
-    // 模糊比對
     for (let item of assetsMap.values()) {
       if (item.assetNo === cleanCode || item.assetKey.endsWith(cleanCode) || item.oldNo === cleanCode) {
         found = item;
@@ -944,13 +874,13 @@ function onBarcodeScanned(decodedText) {
 
   const feedback = document.getElementById('scanFeedback');
   if (found) {
-    playBeep(987, 0.15); // 高音嗶
+    playBeep(987, 0.15);
     triggerVibration();
     
     found.checked = true;
     found.checkedTime = new Date().toLocaleString();
     if (!found.history) found.history = [];
-    found.history.push({ time: found.checkedTime, action: '相機掃碼盤點', note: '現場確認在庫正常' });
+    found.history.push({ time: found.checkedTime, action: '相機掃碼盤點', note: '現場確認在用正常' });
     saveAsset(found);
     
     scanSuccessCount++;
@@ -961,22 +891,18 @@ function onBarcodeScanned(decodedText) {
       <div class="fw-bold fs-6"><i class="bi bi-check-circle-fill me-1"></i> [${found.assetNo || found.assetKey}] ${found.name}</div>
       <div>地點: <strong>${found.location}</strong> | 保管人: <strong>${found.custodian}</strong></div>
       <div class="mt-1 d-flex justify-content-end">
-        <button class="btn btn-sm btn-light py-0 px-2" onclick="openDetailModalFromScan('${found.assetKey}')">異動此設備</button>
+        <button class="btn btn-sm btn-light py-0 px-2 fw-bold" onclick="openDetailModal('${found.assetKey}')">異動此設備</button>
       </div>
     `;
     updateStats();
   } else {
-    playBeep(320, 0.25); // 低音警報
+    playBeep(320, 0.25);
     feedback.className = "mt-2 p-2 rounded text-start text-white bg-danger small";
-    feedback.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> 條碼 [${cleanCode}] 查無對應設備！請確認清冊是否包含此物品。`;
+    feedback.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> 條碼 [${cleanCode}] 查無對應設備！請確認是否已匯入清冊。`;
   }
 }
 
-function openDetailModalFromScan(key) {
-  openDetailModal(key);
-}
-
-// 匯出包含最新狀態與軌跡的 Excel 清冊
+// 匯出包含最新狀態的 Excel 清冊
 function exportUpdatedExcel() {
   if (assetsMap.size === 0) {
     alert('目前尚無資料可供匯出。');
@@ -990,7 +916,7 @@ function exportUpdatedExcel() {
     if (item.status === 'scrapped') statText = '已報廢';
 
     exportData.push({
-      '財產編號': `${item.categoryCode}\r\n\r\n${item.assetNo}`,
+      '財產編號': item.categoryCode ? `${item.categoryCode}\r\n\r\n${item.assetNo}` : item.assetNo,
       '舊登錄號': item.oldNo,
       '財產名稱': item.name,
       '形式\n品名': item.spec,
@@ -1001,13 +927,12 @@ function exportUpdatedExcel() {
       '使用年限': item.lifespan,
       '已使用年限': item.usedYears,
       '存放地點': item.location,
-      '保管人員': item.custodian,
-      '原始備註': item.notes,
+      '保管人員': item.custodianCode ? `${item.custodianCode}\r\n${item.custodian}` : item.custodian,
+      '備註': item.notes,
       '［系統］盤點狀態': item.checked ? '已盤點' : '未盤點',
       '［系統］盤點時間': item.checkedTime || '',
       '［系統］設備狀態': statText,
-      '［系統］報廢原因': item.scrapReason || '',
-      '［系統］最新備註': item.notes || ''
+      '［系統］報廢原因': item.scrapReason || ''
     });
   });
 
@@ -1019,27 +944,21 @@ function exportUpdatedExcel() {
 }
 
 function clearAllData() {
-  if (confirm('確定要清空資料庫內的所有財產與異動紀錄嗎？此動作無法復原！')) {
+  if (confirm('確定要清空雲端與本機的所有財產與盤點紀錄嗎？此動作無法復原！')) {
     assetsMap.clear();
     locationsSet.clear();
     if (db) {
       const tx = db.transaction('assets', 'readwrite');
       tx.objectStore('assets').clear();
     }
-    if (firebaseDb) {
-      firebaseDb.ref('assets').remove();
-    }
+    firebaseDb.ref('assets').remove();
     renderTable();
     updateStats();
-    bootstrap.Modal.getInstance(document.getElementById('settingsModal')).hide();
-    alert('資料已全數清空。');
+    alert('資料庫已全數清空。');
   }
 }
 
-// 啟動系統
-window.addEventListener('DOMContentLoaded', () => {
-  initStorage();
-});
+window.addEventListener('DOMContentLoaded', initSystem);
 </script>
 </body>
 </html>
