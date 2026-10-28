@@ -862,12 +862,28 @@ function onBarcodeScanned(decodedText) {
   clearTimeout(scanCooldownTimer);
   scanCooldownTimer = setTimeout(() => { lastScannedCode = ''; }, 2500);
 
-  let found = assetsMap.get(cleanCode);
+  // 比對財產 (加入公務物品 9 開頭前綴容錯與去除星號)
+  const normCode = cleanCode.replace(/^\*+|\*+$/g, '');
+  let found = assetsMap.get(normCode);
+
   if (!found) {
-    for (let item of assetsMap.values()) {
-      if (item.assetNo === cleanCode || item.assetKey.endsWith(cleanCode) || item.oldNo === cleanCode) {
-        found = item;
-        break;
+    // 若為 8 碼且以 9 開頭，自動去除前綴 9 (例如 96005460 -> 6005460)
+    let stripCode = (normCode.length === 8 && normCode.startsWith('9')) ? normCode.substring(1) : normCode;
+    found = assetsMap.get(stripCode);
+
+    // 廣義匹配：比對序號、分類代號、舊號或字尾包含
+    if (!found) {
+      for (let item of assetsMap.values()) {
+        if (
+          item.assetNo === normCode ||
+          item.assetNo === stripCode ||
+          item.assetKey === stripCode ||
+          normCode.endsWith(item.assetNo) ||
+          item.oldNo === normCode
+        ) {
+          found = item;
+          break;
+        }
       }
     }
   }
