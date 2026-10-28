@@ -28,36 +28,61 @@
       background: #000;
       border-radius: 12px;
       overflow: hidden;
-      max-height: 400px;
+      min-height: 280px;
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #reader {
       width: 100%;
+      height: 100%;
+    }
+    #reader video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      border-radius: 12px;
     }
     .scan-aim-box {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 82%;
-      height: 95px;
-      border: 2px dashed #00ff66;
-      border-radius: 8px;
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+      width: 85%;
+      height: 110px;
       pointer-events: none;
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 10;
     }
     .scan-aim-line {
-      width: 92%;
+      width: 90%;
       height: 2px;
       background-color: #ff3b30;
-      box-shadow: 0 0 8px #ff3b30;
+      box-shadow: 0 0 10px 1px #ff3b30;
       animation: scanAnim 1.8s infinite ease-in-out;
     }
     @keyframes scanAnim {
-      0%, 100% { transform: translateY(-32px); }
-      50% { transform: translateY(32px); }
+      0%, 100% { transform: translateY(-42px); }
+      50% { transform: translateY(42px); }
+    }
+    @keyframes successFlash {
+      0%, 100% {
+        background-color: #198754 !important;
+        box-shadow: 0 0 0px rgba(0, 230, 118, 0);
+        transform: scale(1);
+      }
+      50% {
+        background-color: #00c853 !important;
+        box-shadow: 0 0 22px rgba(0, 255, 127, 0.95);
+        border: 1px solid #b9f6ca;
+        transform: scale(1.02);
+      }
+    }
+    .animate-flash-5 {
+      animation: successFlash 0.24s ease-in-out 5;
     }
     .timeline {
       border-left: 2px solid #dee2e6;
@@ -793,65 +818,112 @@ function triggerVibration() {
   }
 }
 
-// 行動端相機連續掃描
+// 行動端相機連續掃描 (已針對 iOS Safari 生命週期最佳化)
+let isScannerStarting = false;
+
 function openScannerModal() {
-  const modal = new bootstrap.Modal(document.getElementById('scannerModal'));
-  modal.show();
   scanSuccessCount = 0;
   document.getElementById('scanCounterText').innerText = '本次掃描成功: 0 件';
-  startScanner();
+  const fb = document.getElementById('scanFeedback');
+  if (fb) {
+    fb.className = 'mt-2 p-2 rounded text-start text-white bg-dark small';
+    fb.innerText = '請將手機鏡頭水平對準財產標籤上的條碼...';
+  }
+  const modalEl = document.getElementById('scannerModal');
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
 }
 
 function closeScannerModal() {
-  stopScanner();
-  const modalInstance = bootstrap.Modal.getInstance(document.getElementById('scannerModal'));
-  if (modalInstance) modalInstance.hide();
-  renderTable();
-  updateStats();
+  const modalEl = document.getElementById('scannerModal');
+  const modal = bootstrap.Modal.getInstance(modalEl);
+  if (modal) modal.hide();
 }
 
-function startScanner() {
-  const qrBoxFunction = (viewfinderWidth, viewfinderHeight) => {
-    return { width: Math.floor(viewfinderWidth * 0.85), height: 110 };
-  };
+async function startScanner() {
+  if (isScannerStarting) return;
+  if (html5QrCode && html5QrCode.isScanning) return;
+  isScannerStarting = true;
 
-  html5QrCode = new Html5Qrcode("reader");
-  const config = {
-    fps: 15,
-    qrbox: qrBoxFunction,
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.CODE_39,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.QR_CODE
-    ]
-  };
+  const readerEl = document.getElementById("reader");
+  if (readerEl) readerEl.innerHTML = "";
 
-  html5QrCode.start(
-    { facingMode: "environment" },
-    config,
-    onBarcodeScanned,
-    () => {}
-  ).catch(err => {
+  try {
+    html5QrCode = new Html5Qrcode("reader");
+    const config = {
+      fps: 15,
+      qrbox: (viewfinderWidth, viewfinderHeight) => {
+        const w = Math.max(Math.floor(viewfinderWidth * 0.85), 200);
+        return { width: w, height: 110 };
+      },
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    };
+
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      config,
+      onBarcodeScanned,
+      () => {}
+    );
+  } catch (err) {
+    console.error("相機啟動異常:", err);
     alert("無法啟動相機：請確認透過 HTTPS 安全網址開啟並允許相機權限。\n" + err);
-  });
-}
-
-function stopScanner() {
-  if (html5QrCode) {
-    html5QrCode.stop().then(() => {
-      html5QrCode.clear();
-      html5QrCode = null;
-    }).catch(e => console.log(e));
+  } finally {
+    isScannerStarting = false;
   }
 }
 
-function toggleTorch() {
+async function stopScanner() {
   if (html5QrCode) {
+    try {
+      if (html5QrCode.isScanning) {
+        await html5QrCode.stop();
+      }
+    } catch (e) {
+      console.warn("停止掃描器提醒:", e);
+    }
+    try {
+      html5QrCode.clear();
+    } catch (e) {}
+    html5QrCode = null;
+  }
+
+  // iOS Safari 關鍵修復：強制銷毀並釋放所有相機硬體 MediaStreamTrack
+  const readerEl = document.getElementById("reader");
+  if (readerEl) {
+    const videos = readerEl.getElementsByTagName("video");
+    for (let v of videos) {
+      if (v.srcObject) {
+        try {
+          const tracks = v.srcObject.getTracks();
+          tracks.forEach(track => track.stop());
+        } catch (e) {}
+        v.srcObject = null;
+      }
+    }
+    readerEl.innerHTML = "";
+  }
+  isTorchOn = false;
+}
+
+function toggleTorch() {
+  if (html5QrCode && html5QrCode.isScanning) {
     isTorchOn = !isTorchOn;
     html5QrCode.applyVideoConstraints({
       advanced: [{ torch: isTorchOn }]
     }).catch(() => alert("此裝置或瀏覽器不支援手電筒補光控制"));
   }
+}
+
+function openDetailModalFromScan(key) {
+  closeScannerModal();
+  setTimeout(() => {
+    openDetailModal(key);
+  }, 350);
 }
 
 function onBarcodeScanned(decodedText) {
@@ -867,11 +939,9 @@ function onBarcodeScanned(decodedText) {
   let found = assetsMap.get(normCode);
 
   if (!found) {
-    // 若為 8 碼且以 9 開頭，自動去除前綴 9 (例如 96005460 -> 6005460)
     let stripCode = (normCode.length === 8 && normCode.startsWith('9')) ? normCode.substring(1) : normCode;
     found = assetsMap.get(stripCode);
 
-    // 廣義匹配：比對序號、分類代號、舊號或字尾包含
     if (!found) {
       for (let item of assetsMap.values()) {
         if (
@@ -903,11 +973,13 @@ function onBarcodeScanned(decodedText) {
     document.getElementById('scanCounterText').innerText = `本次掃描成功: ${scanSuccessCount} 件`;
 
     feedback.className = "mt-2 p-2 rounded text-start text-white bg-success small";
+    void feedback.offsetWidth; // 強制瀏覽器重繪，確保每次成功皆觸發高亮閃爍 5 次動畫
+    feedback.classList.add("animate-flash-5");
     feedback.innerHTML = `
       <div class="fw-bold fs-6"><i class="bi bi-check-circle-fill me-1"></i> [${found.assetNo || found.assetKey}] ${found.name}</div>
       <div>地點: <strong>${found.location}</strong> | 保管人: <strong>${found.custodian}</strong></div>
       <div class="mt-1 d-flex justify-content-end">
-        <button class="btn btn-sm btn-light py-0 px-2 fw-bold" onclick="openDetailModal('${found.assetKey}')">異動此設備</button>
+        <button class="btn btn-sm btn-light py-0 px-2 fw-bold" onclick="openDetailModalFromScan('${found.assetKey}')">異動此設備</button>
       </div>
     `;
     updateStats();
@@ -974,7 +1046,20 @@ function clearAllData() {
   }
 }
 
-window.addEventListener('DOMContentLoaded', initSystem);
+window.addEventListener('DOMContentLoaded', () => {
+  initSystem();
+  const scannerModalEl = document.getElementById('scannerModal');
+  if (scannerModalEl) {
+    scannerModalEl.addEventListener('shown.bs.modal', () => {
+      startScanner();
+    });
+    scannerModalEl.addEventListener('hidden.bs.modal', async () => {
+      await stopScanner();
+      renderTable();
+      updateStats();
+    });
+  }
+});
 </script>
 </body>
 </html>
