@@ -125,6 +125,11 @@
       font-weight: 600;
       transition: all 0.15s ease;
     }
+    .batch-select-cb {
+      width: 1.15rem;
+      height: 1.15rem;
+      cursor: pointer;
+    }
   </style>
 
   <!-- 第三方套件：SheetJS、html5-qrcode、Firebase SDK -->
@@ -154,21 +159,32 @@
   </div>
 </nav>
 
-<!-- 狀態摘要與匯入匯出列 -->
+<!-- 狀態摘要與批次操作/匯入匯出列 -->
 <div class="sticky-summary py-2 border-bottom">
   <div class="container-fluid d-flex flex-wrap align-items-center justify-content-between gap-2">
-    <div class="d-flex gap-3 align-items-center">
+    <div class="d-flex flex-wrap gap-3 align-items-center">
       <span class="small text-muted">總設備: <strong id="statTotal" class="text-dark">0</strong></span>
       <span class="small text-success">已盤點: <strong id="statChecked">0</strong></span>
       <span class="small text-danger">未盤點: <strong id="statUnchecked">0</strong></span>
       <span class="small text-warning text-dark">擬報廢: <strong id="statPendingScrap">0</strong></span>
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle">目前篩選: <strong id="statFiltered">0</strong> 筆</span>
+      <span id="selectedCountBadge" class="badge bg-info-subtle text-info-emphasis border border-info-subtle" style="display:none;">已勾選: <strong id="statSelected">0</strong> 筆</span>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <div class="btn-group btn-group-sm" role="group" aria-label="批次盤點操作">
+        <button type="button" class="btn btn-primary fw-semibold" id="btnBatchCheck" onclick="batchSetChecked(true)" title="若有勾選則盤點勾選項目；未勾選則一鍵盤點目前篩選結果">
+          <i class="bi bi-check2-all me-1"></i><span id="btnBatchCheckText">一鍵盤點篩選</span>
+        </button>
+        <button type="button" class="btn btn-outline-secondary" id="btnBatchUncheck" onclick="batchSetChecked(false)" title="若有勾選則取消勾選項目盤點；未勾選則一鍵取消目前篩選結果盤點">
+          <i class="bi bi-x-circle me-1"></i><span id="btnBatchUncheckText">批次取消盤點</span>
+        </button>
+      </div>
+      <div class="vr d-none d-sm-block mx-1"></div>
       <button class="btn btn-sm btn-outline-success" onclick="document.getElementById('excelFileInput').click()">
         <i class="bi bi-file-earmark-excel me-1"></i>匯入 Excel
       </button>
       <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display:none" onchange="handleExcelUpload(event)">
-      <button class="btn btn-sm btn-success" onclick="exportUpdatedExcel()">
+      <button class="btn btn-sm btn-success" onclick="exportUpdatedExcel()" title="依據目前搜尋篩選結果與排序匯出清冊">
         <i class="bi bi-download me-1"></i>匯出清冊
       </button>
     </div>
@@ -229,6 +245,9 @@
       <table class="table table-hover align-middle mb-0" id="assetTable">
         <thead class="table-light sticky-top">
           <tr>
+            <th style="width: 42px;" class="text-center">
+              <input class="form-check-input batch-select-cb" type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllVisible(this.checked)" title="全選 / 取消全選目前畫面設備">
+            </th>
             <th style="width: 95px;" class="text-center">盤點狀態</th>
             <th>財產編號 / 條碼號</th>
             <th>財產名稱 / 規格型號</th>
@@ -243,7 +262,7 @@
         </thead>
         <tbody id="assetTableBody">
           <tr>
-            <td colspan="8" class="text-center py-5 text-muted">
+            <td colspan="9" class="text-center py-5 text-muted">
               <i class="bi bi-folder2-open display-6 d-block mb-2"></i>
               尚未載入任何財產資料，請點擊上方「匯入 Excel」上傳清冊
             </td>
@@ -397,6 +416,7 @@ let db = null; // 本機 IndexedDB 快取備援
 let assetsMap = new Map();
 let locationsSet = new Set();
 let custodiansSet = new Set();
+let selectedKeysSet = new Set(); // 儲存使用者額外挑選出來的設備 key
 let html5QrCode = null;
 let lastScannedCode = '';
 let scanCooldownTimer = null;
@@ -496,6 +516,11 @@ async function initSystem() {
       });
     }
 
+    // 清理已不存在於資料庫的勾選項目
+    Array.from(selectedKeysSet).forEach(k => {
+      if (!assetsMap.has(k)) selectedKeysSet.delete(k);
+    });
+
     // 若有滿一年自動重置的設備，批次寫回雲端
     if (Object.keys(expiredBatchUpdates).length > 0) {
       firebaseDb.ref('assets').update(expiredBatchUpdates);
@@ -527,6 +552,7 @@ function deleteAssetByKey(key) {
   if (modalInst) modalInst.hide();
 
   assetsMap.delete(key);
+  selectedKeysSet.delete(key);
   deleteFromIDB(key);
   firebaseDb.ref('assets/' + key).remove();
 
@@ -743,16 +769,13 @@ function sortAssetsArray(arr) {
   });
 }
 
-// 渲染設備列表
-function renderTable() {
+// 共用：取得目前搜尋、下拉篩選並依指定排序排列後的設備陣列 (供表格渲染、批次盤點與匯出清冊共用)
+function getFilteredAndSortedAssets() {
   const search = document.getElementById('searchInput').value.trim().toLowerCase();
   const filterLoc = document.getElementById('filterLocation').value;
   const filterCus = document.getElementById('filterCustodian').value;
   const filterStat = document.getElementById('filterStatus').value;
   const filterChk = document.getElementById('filterChecked').value;
-
-  const tbody = document.getElementById('assetTableBody');
-  tbody.innerHTML = '';
 
   let filtered = Array.from(assetsMap.values()).filter(a => {
     if (filterLoc && a.location !== filterLoc) return false;
@@ -767,25 +790,160 @@ function renderTable() {
     return true;
   });
 
-  if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">無符合篩選條件的財產設備</td></tr>`;
+  return sortAssetsArray(filtered);
+}
+
+// 單筆勾選與全選處理 (挑選出幾台設備的選取機制)
+function toggleRowSelection(key, isSelected) {
+  if (isSelected) {
+    selectedKeysSet.add(key);
+  } else {
+    selectedKeysSet.delete(key);
+  }
+  updateBatchSelectionUI();
+}
+
+function toggleSelectAllVisible(isSelected) {
+  const visibleItems = getFilteredAndSortedAssets();
+  visibleItems.forEach(item => {
+    if (isSelected) selectedKeysSet.add(item.assetKey);
+    else selectedKeysSet.delete(item.assetKey);
+  });
+  renderTable();
+}
+
+function updateBatchSelectionUI() {
+  const visibleItems = getFilteredAndSortedAssets();
+  const visibleSelectedCount = visibleItems.filter(item => selectedKeysSet.has(item.assetKey)).length;
+
+  // 更新表頭全選核取方塊狀態
+  const selectAllEl = document.getElementById('selectAllCheckbox');
+  if (selectAllEl) {
+    if (visibleItems.length === 0) {
+      selectAllEl.checked = false;
+      selectAllEl.indeterminate = false;
+    } else if (visibleSelectedCount === visibleItems.length) {
+      selectAllEl.checked = true;
+      selectAllEl.indeterminate = false;
+    } else if (visibleSelectedCount > 0) {
+      selectAllEl.checked = false;
+      selectAllEl.indeterminate = true;
+    } else {
+      selectAllEl.checked = false;
+      selectAllEl.indeterminate = false;
+    }
+  }
+
+  // 更新上方已勾選徽章與批次按鈕動態文字
+  const selBadge = document.getElementById('selectedCountBadge');
+  const statSelectedEl = document.getElementById('statSelected');
+  const btnCheckText = document.getElementById('btnBatchCheckText');
+  const btnUncheckText = document.getElementById('btnBatchUncheckText');
+
+  if (visibleSelectedCount > 0) {
+    selBadge.style.display = 'inline-block';
+    statSelectedEl.innerText = visibleSelectedCount;
+    btnCheckText.innerText = `盤點已選 (${visibleSelectedCount})`;
+    btnUncheckText.innerText = `取消已選 (${visibleSelectedCount})`;
+  } else {
+    selBadge.style.display = 'none';
+    statSelectedEl.innerText = '0';
+    btnCheckText.innerText = `一鍵盤點篩選 (${visibleItems.length})`;
+    btnUncheckText.innerText = `批次取消盤點`;
+  }
+}
+
+// 執行批次盤點或批次取消盤點 (同時支援「挑選出來的勾選設備」與「一鍵篩選結果」)
+async function batchSetChecked(targetCheckedState) {
+  const visibleItems = getFilteredAndSortedAssets();
+  if (visibleItems.length === 0) {
+    alert('目前畫面無任何符合篩選條件的設備可供批次操作。');
     return;
   }
 
-  sortAssetsArray(filtered);
+  // 若使用者有在左方勾選特定幾台設備，優先針對勾選的設備進行批次處理；否則針對目前篩選出的所有設備一鍵處理
+  const selectedVisibleItems = visibleItems.filter(item => selectedKeysSet.has(item.assetKey));
+  const isUsingSelection = selectedVisibleItems.length > 0;
+  const targetItems = isUsingSelection ? selectedVisibleItems : visibleItems;
+
+  const scopeDesc = isUsingSelection
+    ? `您手動勾選挑出的 ${targetItems.length} 筆設備`
+    : `目前篩選出的全部 ${targetItems.length} 筆設備`;
+
+  const actionDesc = targetCheckedState ? '【已盤點】' : '【未盤點】（將保留上次盤點日期）';
+
+  if (!confirm(`確定要將「${scopeDesc}」批次標記為 ${actionDesc} 嗎？`)) {
+    return;
+  }
+
+  const now = new Date();
+  const nowStr = formatDateTime(now);
+  const nowMs = now.getTime();
+  const batchUpdates = {};
+
+  targetItems.forEach(item => {
+    item.checked = targetCheckedState;
+    if (targetCheckedState) {
+      item.checkedTime = nowStr;
+      item.checkedTimestamp = nowMs;
+      item.autoExpired = false;
+      if (!item.history) item.history = [];
+      item.history.push({
+        time: nowStr,
+        action: '批次快速盤點',
+        note: isUsingSelection ? '勾選批次標記為已盤點' : '篩選一鍵標記為已盤點'
+      });
+    } else {
+      if (!item.history) item.history = [];
+      item.history.push({
+        time: nowStr,
+        action: '批次取消盤點',
+        note: '手動批次取消已盤點標記（保留歷史盤點時間）'
+      });
+    }
+    batchUpdates[item.assetKey] = item;
+    saveToIDB(item);
+  });
+
+  // 完成批次操作後自動清空勾選狀態
+  if (isUsingSelection) {
+    targetItems.forEach(item => selectedKeysSet.delete(item.assetKey));
+  }
+
+  await firebaseDb.ref('assets').update(batchUpdates);
+  updateStats();
+  renderTable();
+}
+
+// 渲染設備列表
+function renderTable() {
+  const tbody = document.getElementById('assetTableBody');
+  tbody.innerHTML = '';
+
+  const filtered = getFilteredAndSortedAssets();
+  const statFilteredEl = document.getElementById('statFiltered');
+  if (statFilteredEl) statFilteredEl.innerText = filtered.length;
+
+  updateBatchSelectionUI();
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">無符合篩選條件的財產設備</td></tr>`;
+    return;
+  }
 
   const nowMs = Date.now();
   const fragment = document.createDocumentFragment();
 
   filtered.forEach(item => {
     const tr = document.createElement('tr');
+    const isRowSelected = selectedKeysSet.has(item.assetKey);
     tr.className = item.checked ? 'table-success-subtle' : '';
 
     let statusBadge = '<span class="badge badge-status-in_use">正常在用</span>';
     if (item.status === 'pending_scrap') statusBadge = '<span class="badge badge-status-pending_scrap">擬報廢</span>';
     if (item.status === 'scrapped') statusBadge = '<span class="badge badge-status-scrapped">已報廢</span>';
 
-    // 盤點切換按鈕 (取代原核取方塊)
+    // 盤點切換按鈕 (點擊一次已盤點、再點一次取消盤點)
     const checkBtnHtml = item.checked
       ? `<button type="button" class="btn btn-sm btn-success btn-check-toggle shadow-sm" onclick="toggleItemChecked('${item.assetKey}')"><i class="bi bi-check-circle-fill me-1"></i>已盤點</button>`
       : `<button type="button" class="btn btn-sm btn-outline-secondary btn-check-toggle bg-white" onclick="toggleItemChecked('${item.assetKey}')"><i class="bi bi-circle me-1"></i>未盤點</button>`;
@@ -822,6 +980,9 @@ function renderTable() {
     }
 
     tr.innerHTML = `
+      <td class="text-center">
+        <input class="form-check-input batch-select-cb" type="checkbox" ${isRowSelected ? 'checked' : ''} onchange="toggleRowSelection('${item.assetKey}', this.checked)" title="勾選以加入批次操作">
+      </td>
       <td class="text-center">
         ${checkBtnHtml}
       </td>
@@ -1274,16 +1435,21 @@ function onBarcodeScanned(decodedText) {
   }
 }
 
-// 匯出包含最新狀態的 Excel 清冊
+// 匯出包含最新狀態的 Excel 清冊 (直接依據目前搜尋、下拉篩選結果與排序匯出)
 function exportUpdatedExcel() {
   if (assetsMap.size === 0) {
     alert('目前尚無資料可供匯出。');
     return;
   }
 
+  const filteredAndSortedItems = getFilteredAndSortedAssets();
+  if (filteredAndSortedItems.length === 0) {
+    alert('目前篩選條件下無任何財產資料可供匯出！');
+    return;
+  }
+
   const exportData = [];
-  const sortedItems = sortAssetsArray(Array.from(assetsMap.values()));
-  sortedItems.forEach(item => {
+  filteredAndSortedItems.forEach(item => {
     let statText = '正常在用';
     if (item.status === 'pending_scrap') statText = '擬報廢';
     if (item.status === 'scrapped') statText = '已報廢';
@@ -1312,7 +1478,10 @@ function exportUpdatedExcel() {
   const ws = XLSX.utils.json_to_sheet(exportData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "盤點最新清冊");
-  const fileName = `財產盤點最新清冊_${new Date().toISOString().slice(0,10)}.xlsx`;
+
+  const isFiltered = filteredAndSortedItems.length < assetsMap.size;
+  const countSuffix = isFiltered ? `_篩選${filteredAndSortedItems.length}筆` : `_全校${filteredAndSortedItems.length}筆`;
+  const fileName = `財產盤點清冊${countSuffix}_${new Date().toISOString().slice(0,10)}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }
 
@@ -1321,6 +1490,7 @@ function clearAllData() {
     assetsMap.clear();
     locationsSet.clear();
     custodiansSet.clear();
+    selectedKeysSet.clear();
     if (db) {
       const tx = db.transaction('assets', 'readwrite');
       tx.objectStore('assets').clear();
