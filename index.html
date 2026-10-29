@@ -103,7 +103,7 @@
       border-radius: 50%;
       background: var(--primary-color);
     }
-        .sortable-th {
+    .sortable-th {
       cursor: pointer;
       user-select: none;
       transition: background-color 0.15s ease;
@@ -119,6 +119,11 @@
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(5px);
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .btn-check-toggle {
+      min-width: 82px;
+      font-weight: 600;
+      transition: all 0.15s ease;
     }
   </style>
 
@@ -171,23 +176,28 @@
 </div>
 
 <div class="container-fluid my-3">
-  <!-- 搜尋與過濾器 -->
+  <!-- 搜尋與過濾器 (6欄配置) -->
   <div class="card shadow-sm border-0 mb-3">
     <div class="card-body p-3">
       <div class="row g-2">
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-4 col-lg-2">
           <div class="input-group">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" id="searchInput" class="form-control" placeholder="搜尋編號、品名、保管人..." oninput="renderTable()">
+            <input type="text" id="searchInput" class="form-control" placeholder="搜尋編號、品名..." oninput="renderTable()">
             <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()"><i class="bi bi-x"></i></button>
           </div>
         </div>
-        <div class="col-6 col-md-2">
+        <div class="col-6 col-md-4 col-lg-2">
           <select id="filterLocation" class="form-select" onchange="renderTable()">
             <option value="">全部存放地點</option>
           </select>
         </div>
-        <div class="col-6 col-md-2">
+        <div class="col-6 col-md-4 col-lg-2">
+          <select id="filterCustodian" class="form-select" onchange="renderTable()">
+            <option value="">全部保管人員</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
           <select id="filterStatus" class="form-select" onchange="renderTable()">
             <option value="">全部使用狀態</option>
             <option value="in_use">正常在用</option>
@@ -195,14 +205,14 @@
             <option value="scrapped">已報廢</option>
           </select>
         </div>
-        <div class="col-6 col-md-2">
+        <div class="col-6 col-md-4 col-lg-2">
           <select id="filterChecked" class="form-select" onchange="renderTable()">
             <option value="">全部盤點狀態</option>
             <option value="checked">已盤點</option>
             <option value="unchecked">未盤點</option>
           </select>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-12 col-md-4 col-lg-2">
           <select id="sortOrderSelect" class="form-select border-primary-subtle fw-semibold" onchange="handleSortSelectChange(this.value)">
             <option value="default">⇅ 預設順序 (依編號排列)</option>
             <option value="desc">▼ 最新盤點優先 (新 ➔ 舊)</option>
@@ -219,7 +229,7 @@
       <table class="table table-hover align-middle mb-0" id="assetTable">
         <thead class="table-light sticky-top">
           <tr>
-            <th style="width: 45px;">盤點</th>
+            <th style="width: 95px;" class="text-center">盤點狀態</th>
             <th>財產編號 / 條碼號</th>
             <th>財產名稱 / 規格型號</th>
             <th>存放地點</th>
@@ -228,7 +238,7 @@
             <th class="sortable-th" onclick="cycleCheckDateSort()" title="點擊切換最後盤點日期排序">
               最後盤點日期 <span id="sortHeaderIcon" class="text-muted ms-1">⇅</span>
             </th>
-            <th class="text-end">操作</th>
+            <th class="text-end" style="min-width: 115px;">操作</th>
           </tr>
         </thead>
         <tbody id="assetTableBody">
@@ -303,7 +313,8 @@
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold mb-1 text-primary">保管人員 (移轉)</label>
-            <input type="text" id="editCustodian" class="form-control">
+            <input type="text" id="editCustodian" class="form-control" list="custodianOptions">
+            <datalist id="custodianOptions"></datalist>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold mb-1 text-primary">設備狀態</label>
@@ -325,7 +336,7 @@
           </div>
 
           <div class="col-12">
-            <div class="p-2 bg-light rounded small text-muted d-flex flex-wrap gap-3">
+            <div class="p-2 bg-light rounded small text-muted d-flex flex-wrap gap-3 align-items-center">
               <span>購置日期：<strong id="viewPurchaseDate">-</strong></span>
               <span>使用年限：<strong id="viewLifespan">-</strong> 年</span>
               <span>已使用：<strong id="viewUsedYears">-</strong></span>
@@ -344,9 +355,14 @@
         </div>
       </div>
       <div class="modal-footer justify-content-between">
-        <button type="button" class="btn btn-outline-success" id="btnToggleCheck" onclick="toggleCurrentAssetChecked()">
-          <i class="bi bi-check2-circle me-1"></i>標記為已盤點
-        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-success" id="btnToggleCheck" onclick="toggleCurrentAssetChecked()">
+            <i class="bi bi-check2-circle me-1"></i>標記為已盤點
+          </button>
+          <button type="button" class="btn btn-outline-danger" onclick="deleteCurrentAsset()">
+            <i class="bi bi-trash3 me-1"></i>刪除設備
+          </button>
+        </div>
         <div>
           <button type="button" class="btn btn-secondary me-1" data-bs-dismiss="modal">取消</button>
           <button type="button" class="btn btn-primary" onclick="saveAssetDetail()">儲存異動</button>
@@ -374,9 +390,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const firebaseDb = firebase.database();
 
+// 一年毫秒數常數 (365天)
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
 let db = null; // 本機 IndexedDB 快取備援
 let assetsMap = new Map();
 let locationsSet = new Set();
+let custodiansSet = new Set();
 let html5QrCode = null;
 let lastScannedCode = '';
 let scanCooldownTimer = null;
@@ -409,7 +429,27 @@ function saveToIDB(asset) {
   } catch (e) {}
 }
 
-// 啟動雲端即時同步與狀態監聽
+function deleteFromIDB(key) {
+  if (!db) return;
+  try {
+    const tx = db.transaction('assets', 'readwrite');
+    tx.objectStore('assets').delete(key);
+  } catch (e) {}
+}
+
+// 重新掃描並建立地點與保管人集合
+function rebuildFilterSets() {
+  locationsSet.clear();
+  custodiansSet.clear();
+  assetsMap.forEach(item => {
+    if (item.location) locationsSet.add(item.location);
+    if (item.custodian) custodiansSet.add(item.custodian);
+  });
+  updateLocationSelects();
+  updateCustodianSelects();
+}
+
+// 啟動雲端即時同步與狀態監聽 (含逾1年自動重置為未盤點檢查)
 async function initSystem() {
   await initIndexedDB();
 
@@ -429,16 +469,39 @@ async function initSystem() {
   firebaseDb.ref('assets').on('value', (snapshot) => {
     const data = snapshot.val();
     assetsMap.clear();
-    locationsSet.clear();
+    const expiredBatchUpdates = {};
+    const nowMs = Date.now();
+    const nowStr = formatDateTime(new Date());
+
     if (data) {
       Object.keys(data).forEach(key => {
         const item = data[key];
+        const ts = getRawTimestamp(item);
+
+        // 檢查：若已盤點且距離上次盤點超過 1 年，自動改為未盤點 (保留上次盤點時間)
+        if (item.checked && ts > 1 && (nowMs - ts >= ONE_YEAR_MS)) {
+          item.checked = false;
+          item.autoExpired = true;
+          if (!item.history) item.history = [];
+          item.history.push({
+            time: nowStr,
+            action: '年度盤點重置',
+            note: `距離上次盤點 (${item.checkedTime || '-'}) 已超過 1 年，系統自動改為未盤點`
+          });
+          expiredBatchUpdates[key] = item;
+        }
+
         assetsMap.set(key, item);
-        if (item.location) locationsSet.add(item.location);
         saveToIDB(item);
       });
     }
-    updateLocationSelects();
+
+    // 若有滿一年自動重置的設備，批次寫回雲端
+    if (Object.keys(expiredBatchUpdates).length > 0) {
+      firebaseDb.ref('assets').update(expiredBatchUpdates);
+    }
+
+    rebuildFilterSets();
     renderTable();
     updateStats();
   });
@@ -448,6 +511,33 @@ async function initSystem() {
 function saveAsset(asset) {
   saveToIDB(asset);
   firebaseDb.ref('assets/' + asset.assetKey).set(asset);
+}
+
+// 刪除單筆財產資料 (整筆抹除)
+function deleteAssetByKey(key) {
+  const asset = assetsMap.get(key);
+  if (!asset) return;
+
+  const confirmMsg = `確定要永久刪除整筆財產資料嗎？\n\n【財產編號】：${asset.assetNo || asset.assetKey}\n【財產名稱】：${asset.name}\n【保管人員】：${asset.custodian || '-'}\n\n此動作將同步從雲端資料庫抹除，且無法復原！`;
+  if (!confirm(confirmMsg)) return;
+
+  // 若詳情視窗開啟中，先關閉視窗
+  const modalEl = document.getElementById('assetDetailModal');
+  const modalInst = bootstrap.Modal.getInstance(modalEl);
+  if (modalInst) modalInst.hide();
+
+  assetsMap.delete(key);
+  deleteFromIDB(key);
+  firebaseDb.ref('assets/' + key).remove();
+
+  rebuildFilterSets();
+  updateStats();
+  renderTable();
+}
+
+function deleteCurrentAsset() {
+  const key = document.getElementById('editAssetKey').value;
+  if (key) deleteAssetByKey(key);
 }
 
 // Excel 清冊匯入與智慧合併 (批次高速上傳)
@@ -547,8 +637,9 @@ function handleExcelUpload(e) {
           checked: existing ? existing.checked : false,
           checkedTime: existing ? existing.checkedTime : '',
           checkedTimestamp: existing && existing.checkedTimestamp ? existing.checkedTimestamp : 0,
+          autoExpired: existing && existing.autoExpired ? existing.autoExpired : false,
           history: existing && existing.history ? existing.history : [
-            { time: new Date().toLocaleString(), action: '清冊匯入建檔', note: '原始 Excel 匯入' }
+            { time: formatDateTime(new Date()), action: '清冊匯入建檔', note: '原始 Excel 匯入' }
           ]
         };
 
@@ -556,7 +647,6 @@ function handleExcelUpload(e) {
         else importedCount++;
 
         assetsMap.set(assetKey, assetObj);
-        if (assetObj.location) locationsSet.add(assetObj.location);
         batchUpdates[assetKey] = assetObj;
         saveToIDB(assetObj);
       }
@@ -564,7 +654,7 @@ function handleExcelUpload(e) {
       // 一次批次同步至 Firebase
       await firebaseDb.ref('assets').update(batchUpdates);
 
-      updateLocationSelects();
+      rebuildFilterSets();
       renderTable();
       updateStats();
       alert(`Excel 匯入並同步雲端完成！\n新增設備: ${importedCount} 筆\n智慧合併更新: ${mergedCount} 筆`);
@@ -585,14 +675,14 @@ function formatDateTime(date) {
   return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-function getAssetTimestamp(item) {
-  if (!item.checked) return 0;
+// 取得設備實際紀錄的毫秒時間戳記（不論目前為已盤點或未盤點）
+function getRawTimestamp(item) {
   if (item.checkedTimestamp && Number(item.checkedTimestamp) > 0) return Number(item.checkedTimestamp);
   if (item.checkedTime) {
     const parsed = Date.parse(item.checkedTime);
     if (!isNaN(parsed)) return parsed;
   }
-  return 1; // 若舊資料已勾選但無法解析毫秒，給予最小正值確保排在未盤點之前
+  return item.checked ? 1 : 0;
 }
 
 function cycleCheckDateSort() {
@@ -631,21 +721,20 @@ function syncSortUI() {
 
 function sortAssetsArray(arr) {
   return arr.sort((a, b) => {
+    const tsA = getRawTimestamp(a);
+    const tsB = getRawTimestamp(b);
+    const hasTimeA = tsA > 0;
+    const hasTimeB = tsB > 0;
+
     if (checkDateSortMode === 'desc') {
-      // ▼ 最新盤點優先（新 ➔ 舊），未盤點排最後
-      if (a.checked !== b.checked) return a.checked ? -1 : 1;
-      if (a.checked && b.checked) {
-        const diff = getAssetTimestamp(b) - getAssetTimestamp(a);
-        if (diff !== 0) return diff;
-      }
+      // ▼ 最新盤點優先（新 ➔ 舊），從未盤點排最後
+      if (hasTimeA !== hasTimeB) return hasTimeA ? -1 : 1;
+      if (hasTimeA && hasTimeB && tsB !== tsA) return tsB - tsA;
       return String(a.assetKey).localeCompare(String(b.assetKey));
     } else if (checkDateSortMode === 'asc') {
-      // ▲ 最舊盤點優先（舊 ➔ 新），未盤點排最後
-      if (a.checked !== b.checked) return a.checked ? -1 : 1;
-      if (a.checked && b.checked) {
-        const diff = getAssetTimestamp(a) - getAssetTimestamp(b);
-        if (diff !== 0) return diff;
-      }
+      // ▲ 最舊盤點優先（舊 ➔ 新），從未盤點排最後
+      if (hasTimeA !== hasTimeB) return hasTimeA ? -1 : 1;
+      if (hasTimeA && hasTimeB && tsA !== tsB) return tsA - tsB;
       return String(a.assetKey).localeCompare(String(b.assetKey));
     } else {
       // ⇅ 預設順序：依財產編號順序排列
@@ -658,6 +747,7 @@ function sortAssetsArray(arr) {
 function renderTable() {
   const search = document.getElementById('searchInput').value.trim().toLowerCase();
   const filterLoc = document.getElementById('filterLocation').value;
+  const filterCus = document.getElementById('filterCustodian').value;
   const filterStat = document.getElementById('filterStatus').value;
   const filterChk = document.getElementById('filterChecked').value;
 
@@ -666,6 +756,7 @@ function renderTable() {
 
   let filtered = Array.from(assetsMap.values()).filter(a => {
     if (filterLoc && a.location !== filterLoc) return false;
+    if (filterCus && a.custodian !== filterCus) return false;
     if (filterStat && a.status !== filterStat) return false;
     if (filterChk === 'checked' && !a.checked) return false;
     if (filterChk === 'unchecked' && a.checked) return false;
@@ -683,7 +774,9 @@ function renderTable() {
 
   sortAssetsArray(filtered);
 
+  const nowMs = Date.now();
   const fragment = document.createDocumentFragment();
+
   filtered.forEach(item => {
     const tr = document.createElement('tr');
     tr.className = item.checked ? 'table-success-subtle' : '';
@@ -692,20 +785,45 @@ function renderTable() {
     if (item.status === 'pending_scrap') statusBadge = '<span class="badge badge-status-pending_scrap">擬報廢</span>';
     if (item.status === 'scrapped') statusBadge = '<span class="badge badge-status-scrapped">已報廢</span>';
 
+    // 盤點切換按鈕 (取代原核取方塊)
+    const checkBtnHtml = item.checked
+      ? `<button type="button" class="btn btn-sm btn-success btn-check-toggle shadow-sm" onclick="toggleItemChecked('${item.assetKey}')"><i class="bi bi-check-circle-fill me-1"></i>已盤點</button>`
+      : `<button type="button" class="btn btn-sm btn-outline-secondary btn-check-toggle bg-white" onclick="toggleItemChecked('${item.assetKey}')"><i class="bi bi-circle me-1"></i>未盤點</button>`;
+
+    // 最後盤點日期呈現 (保留上次盤點時間，並區分已盤點 / 逾1年未盤 / 上次盤點)
     let checkTimeDisplay = '<span class="text-muted small">-</span>';
-    if (item.checked) {
-      const timeStr = item.checkedTime || '已盤點';
-      const parts = timeStr.split(' ');
-      if (parts.length >= 2) {
-        checkTimeDisplay = `<div class="small fw-semibold text-success-emphasis font-monospace">${parts[0]}</div><div class="small text-muted font-monospace" style="font-size:0.75rem;">${parts.slice(1).join(' ')}</div>`;
+    if (item.checkedTime) {
+      const parts = item.checkedTime.split(' ');
+      const datePart = parts[0] || item.checkedTime;
+      const timePart = parts.slice(1).join(' ');
+      const ts = getRawTimestamp(item);
+      const isOverYear = ts > 1 && (nowMs - ts >= ONE_YEAR_MS);
+
+      if (item.checked) {
+        checkTimeDisplay = `
+          <div class="small fw-semibold text-success-emphasis font-monospace">${datePart}</div>
+          ${timePart ? `<div class="small text-muted font-monospace" style="font-size:0.75rem;">${timePart}</div>` : ''}
+        `;
+      } else if (isOverYear || item.autoExpired) {
+        checkTimeDisplay = `
+          <div class="small fw-semibold text-danger font-monospace">${datePart}</div>
+          ${timePart ? `<div class="small text-muted font-monospace" style="font-size:0.72rem;">${timePart}</div>` : ''}
+          <span class="badge bg-danger-subtle text-danger border border-danger-subtle mt-1" style="font-size:0.68rem;">逾 1 年未盤</span>
+        `;
       } else {
-        checkTimeDisplay = `<span class="small fw-semibold text-success-emphasis font-monospace">${timeStr}</span>`;
+        checkTimeDisplay = `
+          <div class="small text-secondary font-monospace">${datePart}</div>
+          ${timePart ? `<div class="small text-muted font-monospace" style="font-size:0.72rem;">${timePart}</div>` : ''}
+          <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle mt-1" style="font-size:0.68rem;">上次盤點</span>
+        `;
       }
+    } else if (item.checked) {
+      checkTimeDisplay = `<span class="small fw-semibold text-success-emphasis">已盤點</span>`;
     }
 
     tr.innerHTML = `
-      <td>
-        <input class="form-check-input" type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItemChecked('${item.assetKey}', this.checked)">
+      <td class="text-center">
+        ${checkBtnHtml}
       </td>
       <td>
         <div class="fw-bold text-primary font-monospace">${item.assetNo || item.assetKey}</div>
@@ -720,9 +838,12 @@ function renderTable() {
       <td>${item.custodian || '-'}</td>
       <td>${statusBadge}</td>
       <td>${checkTimeDisplay}</td>
-      <td class="text-end">
-        <button class="btn btn-sm btn-outline-primary" onclick="openDetailModal('${item.assetKey}')">
+      <td class="text-end text-nowrap">
+        <button class="btn btn-sm btn-outline-primary me-1" onclick="openDetailModal('${item.assetKey}')" title="編輯與異動詳情">
           <i class="bi bi-pencil-square"></i> 異動
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteAssetByKey('${item.assetKey}')" title="刪除此筆財產">
+          <i class="bi bi-trash3"></i>
         </button>
       </td>
     `;
@@ -751,7 +872,7 @@ function updateLocationSelects() {
   const datalist = document.getElementById('locationOptions');
   select.innerHTML = '<option value="">全部存放地點</option>';
   datalist.innerHTML = '';
-  Array.from(locationsSet).sort().forEach(loc => {
+  Array.from(locationsSet).sort((a, b) => a.localeCompare(b, 'zh-Hant')).forEach(loc => {
     if (!loc) return;
     const opt = document.createElement('option');
     opt.value = loc;
@@ -762,7 +883,33 @@ function updateLocationSelects() {
     dOpt.value = loc;
     datalist.appendChild(dOpt);
   });
-  select.value = currentVal;
+  if (locationsSet.has(currentVal)) {
+    select.value = currentVal;
+  }
+}
+
+function updateCustodianSelects() {
+  const select = document.getElementById('filterCustodian');
+  const currentVal = select.value;
+  const datalist = document.getElementById('custodianOptions');
+  select.innerHTML = '<option value="">全部保管人員</option>';
+  if (datalist) datalist.innerHTML = '';
+  Array.from(custodiansSet).sort((a, b) => a.localeCompare(b, 'zh-Hant')).forEach(cus => {
+    if (!cus) return;
+    const opt = document.createElement('option');
+    opt.value = cus;
+    opt.textContent = cus;
+    select.appendChild(opt);
+
+    if (datalist) {
+      const dOpt = document.createElement('option');
+      dOpt.value = cus;
+      datalist.appendChild(dOpt);
+    }
+  });
+  if (custodiansSet.has(currentVal)) {
+    select.value = currentVal;
+  }
 }
 
 function clearSearch() {
@@ -770,13 +917,21 @@ function clearSearch() {
   renderTable();
 }
 
-function toggleItemChecked(key, isChecked) {
+// 點擊按鈕切換已盤點 / 未盤點 (取消盤點時保留最後盤點日期)
+function toggleItemChecked(key) {
   const asset = assetsMap.get(key);
   if (!asset) return;
   const now = new Date();
-  asset.checked = isChecked;
-  asset.checkedTime = isChecked ? formatDateTime(now) : '';
-  asset.checkedTimestamp = isChecked ? now.getTime() : 0;
+  const nextState = !asset.checked;
+  asset.checked = nextState;
+
+  if (nextState) {
+    asset.checkedTime = formatDateTime(now);
+    asset.checkedTimestamp = now.getTime();
+    asset.autoExpired = false;
+  }
+  // 若取消盤點 (nextState === false)，保留原有的 asset.checkedTime 與 asset.checkedTimestamp
+
   saveAsset(asset);
   updateStats();
   renderTable();
@@ -808,11 +963,11 @@ function openDetailModal(key) {
   if (asset.checked) {
     chkBadge.className = 'badge bg-success';
     chkBadge.innerText = `已盤點 (${asset.checkedTime || ''})`;
-    btnChk.className = 'btn btn-outline-danger';
+    btnChk.className = 'btn btn-outline-secondary';
     btnChk.innerHTML = '<i class="bi bi-x-circle me-1"></i>取消已盤點標記';
   } else {
     chkBadge.className = 'badge bg-secondary';
-    chkBadge.innerText = '未盤點';
+    chkBadge.innerText = asset.checkedTime ? `未盤點 (上次: ${asset.checkedTime})` : '未盤點';
     btnChk.className = 'btn btn-outline-success';
     btnChk.innerHTML = '<i class="bi bi-check2-circle me-1"></i>標記為已盤點';
   }
@@ -854,14 +1009,18 @@ function toggleCurrentAssetChecked() {
   if (!asset) return;
   const now = new Date();
   asset.checked = !asset.checked;
-  asset.checkedTime = asset.checked ? formatDateTime(now) : '';
-  asset.checkedTimestamp = asset.checked ? now.getTime() : 0;
+  if (asset.checked) {
+    asset.checkedTime = formatDateTime(now);
+    asset.checkedTimestamp = now.getTime();
+    asset.autoExpired = false;
+  }
   saveAsset(asset);
   updateStats();
   renderTable();
   openDetailModal(key);
 }
 
+// 儲存異動 (方案A：只要點擊儲存異動，同步更新為已盤點並記錄最後盤點日期)
 function saveAssetDetail() {
   const key = document.getElementById('editAssetKey').value;
   const asset = assetsMap.get(key);
@@ -874,12 +1033,12 @@ function saveAssetDetail() {
   const newNotes = document.getElementById('editNotes').value.trim();
 
   let logs = [];
-  const now = new Date().toLocaleString();
+  const nowObj = new Date();
+  const nowStr = formatDateTime(nowObj);
 
   if (asset.location !== newLoc) {
     logs.push(`地點移轉: [${asset.location || '未設定'}] ➔ [${newLoc}]`);
     asset.location = newLoc;
-    if (newLoc) locationsSet.add(newLoc);
   }
   if (asset.custodian !== newCus) {
     logs.push(`保管人移轉: [${asset.custodian || '-'}] ➔ [${newCus}]`);
@@ -895,16 +1054,25 @@ function saveAssetDetail() {
     asset.notes = newNotes;
   }
 
+  // 方案 A：無論欄位是否有變更，點擊「儲存異動」即記錄最後盤點日期並設為已盤點
+  asset.checked = true;
+  asset.checkedTime = nowStr;
+  asset.checkedTimestamp = nowObj.getTime();
+  asset.autoExpired = false;
+
+  if (!asset.history) asset.history = [];
   if (logs.length > 0) {
-    if (!asset.history) asset.history = [];
     logs.forEach(msg => {
-      asset.history.push({ time: now, action: '設備異動', note: msg });
+      asset.history.push({ time: nowStr, action: '設備異動暨盤點', note: msg });
     });
-    saveAsset(asset);
-    updateLocationSelects();
-    updateStats();
-    renderTable();
+  } else {
+    asset.history.push({ time: nowStr, action: '儲存確認盤點', note: '檢視設備資料並儲存確認盤點' });
   }
+
+  saveAsset(asset);
+  rebuildFilterSets();
+  updateStats();
+  renderTable();
 
   bootstrap.Modal.getInstance(document.getElementById('assetDetailModal')).hide();
 }
@@ -1080,6 +1248,7 @@ function onBarcodeScanned(decodedText) {
     found.checked = true;
     found.checkedTime = formatDateTime(now);
     found.checkedTimestamp = now.getTime();
+    found.autoExpired = false;
     if (!found.history) found.history = [];
     found.history.push({ time: found.checkedTime, action: '相機掃碼盤點', note: '現場確認在用正常' });
     saveAsset(found);
@@ -1134,7 +1303,7 @@ function exportUpdatedExcel() {
       '保管人員': item.custodianCode ? `${item.custodianCode}\r\n${item.custodian}` : item.custodian,
       '備註': item.notes,
       '［系統］盤點狀態': item.checked ? '已盤點' : '未盤點',
-      '［系統］盤點時間': item.checkedTime || '',
+      '［系統］最後盤點時間': item.checkedTime || '',
       '［系統］設備狀態': statText,
       '［系統］報廢原因': item.scrapReason || ''
     });
@@ -1151,11 +1320,14 @@ function clearAllData() {
   if (confirm('確定要清空雲端與本機的所有財產與盤點紀錄嗎？此動作無法復原！')) {
     assetsMap.clear();
     locationsSet.clear();
+    custodiansSet.clear();
     if (db) {
       const tx = db.transaction('assets', 'readwrite');
       tx.objectStore('assets').clear();
     }
     firebaseDb.ref('assets').remove();
+    updateLocationSelects();
+    updateCustodianSelects();
     renderTable();
     updateStats();
     alert('資料庫已全數清空。');
