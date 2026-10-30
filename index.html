@@ -23,6 +23,7 @@
     .badge-status-pending_scrap { background-color: #ffc107; color: black; }
     .badge-status-scrapped { background-color: #dc3545; color: white; }
     
+    /* 原有彈窗相機樣式 */
     .scanner-container {
       position: relative;
       background: #000;
@@ -84,6 +85,279 @@
     .animate-flash-5 {
       animation: successFlash 0.24s ease-in-out 5;
     }
+    @keyframes cardFlashGreen {
+      0%, 100% {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-color: #198754;
+      }
+      50% {
+        box-shadow: 0 0 25px rgba(0, 200, 83, 0.85);
+        border-color: #00e676;
+        background-color: #e8f5e9;
+      }
+    }
+    .animate-card-flash-5 {
+      animation: cardFlashGreen 0.26s ease-in-out 5;
+    }
+
+    /* 頂部主頁籤切換列 */
+    .main-nav-tabs {
+      background: #ffffff;
+      border-bottom: 2px solid #dee2e6;
+      position: sticky;
+      top: 56px;
+      z-index: 1025;
+    }
+    .main-tab-btn {
+      flex: 1;
+      text-align: center;
+      padding: 11px 12px;
+      font-weight: 700;
+      font-size: 0.98rem;
+      border: none;
+      background: transparent;
+      color: #6c757d;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .main-tab-btn.active {
+      color: #0d6efd;
+      border-bottom-color: #0d6efd;
+      background: rgba(13, 110, 253, 0.05);
+    }
+
+    /* 簡易快速查詢：半螢幕相機掃描區 (比照上傳參考圖) */
+    .quick-camera-wrapper {
+      background-color: #0088ff;
+      padding: 14px;
+      border-radius: 12px 12px 0 0;
+      position: relative;
+    }
+    .quick-scanner-viewport {
+      position: relative;
+      background: #000;
+      width: 100%;
+      min-height: 52vh;
+      height: 52vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    #quickReader {
+      width: 100%;
+      height: 100%;
+    }
+    #quickReader video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+    }
+    /* 白色四個直角對焦框 */
+    .corner-bracket {
+      position: absolute;
+      width: 38px;
+      height: 38px;
+      border-color: #ffffff;
+      border-style: solid;
+      z-index: 12;
+      pointer-events: none;
+    }
+    .corner-tl {
+      top: 10px;
+      left: 10px;
+      border-width: 6px 0 0 6px;
+      border-top-left-radius: 6px;
+    }
+    .corner-tr {
+      top: 10px;
+      right: 10px;
+      border-width: 6px 6px 0 0;
+      border-top-right-radius: 6px;
+    }
+    .corner-bl {
+      bottom: 10px;
+      left: 10px;
+      border-width: 0 0 6px 6px;
+      border-bottom-left-radius: 6px;
+    }
+    .corner-br {
+      bottom: 10px;
+      right: 10px;
+      border-width: 0 6px 6px 0;
+      border-bottom-right-radius: 6px;
+    }
+    /* 中央水平紅線 */
+    .quick-laser-line {
+      position: absolute;
+      top: 50%;
+      left: 4%;
+      width: 92%;
+      height: 2.5px;
+      background-color: #ff1744;
+      box-shadow: 0 0 10px 2px rgba(255, 23, 68, 0.9);
+      z-index: 11;
+      pointer-events: none;
+      animation: quickLaserPulse 1.6s infinite ease-in-out;
+    }
+    @keyframes quickLaserPulse {
+      0%, 100% { transform: translateY(-28px); opacity: 0.95; }
+      50% { transform: translateY(28px); opacity: 1; }
+    }
+    .quick-cam-info-strip {
+      background-color: #90e0ef;
+      color: #212529;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 6px 12px;
+      border-top: 2px solid #ffffff;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .quick-cam-control-bar {
+      background-color: #ffffff;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .btn-stop-scan-yellow {
+      background-color: #ffc107;
+      color: #212529;
+      font-weight: 700;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+    }
+    .btn-stop-scan-yellow:active {
+      background-color: #e0a800;
+    }
+    .quick-scan-code-bar {
+      background-color: #ffffff;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .quick-scan-code-label {
+      color: #664d03;
+      font-weight: 800;
+      font-size: 1.15rem;
+      white-space: nowrap;
+    }
+    .quick-scan-code-box {
+      flex: 1;
+      background-color: #e3f6f5;
+      min-height: 38px;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-family: monospace;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0d6efd;
+      display: flex;
+      align-items: center;
+    }
+
+    /* 簡易快速查詢：後 4 碼顯示器與虛擬數字鍵盤 */
+    .pin-display-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 10px 0 12px 0;
+    }
+    .pin-digit-box {
+      width: 62px;
+      height: 68px;
+      border: 2.5px solid #ced4da;
+      border-radius: 12px;
+      background: #ffffff;
+      font-size: 2rem;
+      font-weight: 800;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #0d6efd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
+      transition: all 0.15s ease;
+    }
+    .pin-digit-box.active-slot {
+      border-color: #0d6efd;
+      box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+    }
+    .pin-digit-box.filled-slot {
+      border-color: #0d6efd;
+      background-color: #f0f7ff;
+    }
+    .numpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .numpad-btn {
+      height: 60px;
+      font-size: 1.55rem;
+      font-weight: 700;
+      border-radius: 12px;
+      border: 1px solid #dee2e6;
+      background-color: #ffffff;
+      color: #212529;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      touch-action: manipulation;
+      transition: transform 0.08s ease, background-color 0.1s ease;
+    }
+    .numpad-btn:active {
+      transform: scale(0.96);
+      background-color: #e9ecef;
+    }
+    .numpad-btn.btn-clear {
+      background-color: #fff5f5;
+      color: #dc3545;
+      border-color: #f5c2c7;
+      font-size: 1.15rem;
+    }
+    .numpad-btn.btn-backspace {
+      background-color: #f8f9fa;
+      color: #495057;
+      font-size: 1.25rem;
+    }
+
+    /* 快速查詢結果卡片 */
+    .quick-asset-card {
+      border: 2px solid #dee2e6;
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      transition: all 0.2s ease;
+    }
+    .quick-asset-card.is-checked {
+      border-color: #198754;
+    }
+    .quick-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .quick-info-item {
+      background-color: #f8f9fa;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+    }
+
     .timeline {
       border-left: 2px solid #dee2e6;
       padding-left: 15px;
@@ -114,7 +388,7 @@
     }
     .sticky-summary {
       position: sticky;
-      top: 0;
+      top: 103px;
       z-index: 1020;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(5px);
@@ -141,7 +415,7 @@
 <body>
 
 <!-- 頂部導覽列 -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm" style="min-height: 56px;">
   <div class="container-fluid">
     <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
       <i class="bi bi-box-seam me-2"></i>
@@ -159,121 +433,267 @@
   </div>
 </nav>
 
-<!-- 狀態摘要與批次操作/匯入匯出列 -->
-<div class="sticky-summary py-2 border-bottom">
-  <div class="container-fluid d-flex flex-wrap align-items-center justify-content-between gap-2">
-    <div class="d-flex flex-wrap gap-3 align-items-center">
-      <span class="small text-muted">總設備: <strong id="statTotal" class="text-dark">0</strong></span>
-      <span class="small text-success">已盤點: <strong id="statChecked">0</strong></span>
-      <span class="small text-danger">未盤點: <strong id="statUnchecked">0</strong></span>
-      <span class="small text-warning text-dark">擬報廢: <strong id="statPendingScrap">0</strong></span>
-      <span class="badge bg-primary-subtle text-primary border border-primary-subtle">目前篩選: <strong id="statFiltered">0</strong> 筆</span>
-      <span id="selectedCountBadge" class="badge bg-info-subtle text-info-emphasis border border-info-subtle" style="display:none;">已勾選: <strong id="statSelected">0</strong> 筆</span>
-    </div>
-    <div class="d-flex flex-wrap gap-2 align-items-center">
-      <div class="btn-group btn-group-sm" role="group" aria-label="批次盤點操作">
-        <button type="button" class="btn btn-primary fw-semibold" id="btnBatchCheck" onclick="batchSetChecked(true)" title="若有勾選則盤點勾選項目；未勾選則一鍵盤點目前篩選結果">
-          <i class="bi bi-check2-all me-1"></i><span id="btnBatchCheckText">一鍵盤點篩選</span>
-        </button>
-        <button type="button" class="btn btn-outline-secondary" id="btnBatchUncheck" onclick="batchSetChecked(false)" title="若有勾選則取消勾選項目盤點；未勾選則一鍵取消目前篩選結果盤點">
-          <i class="bi bi-x-circle me-1"></i><span id="btnBatchUncheckText">批次取消盤點</span>
-        </button>
-      </div>
-      <div class="vr d-none d-sm-block mx-1"></div>
-      <button class="btn btn-sm btn-outline-success" onclick="document.getElementById('excelFileInput').click()">
-        <i class="bi bi-file-earmark-excel me-1"></i>匯入 Excel
-      </button>
-      <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display:none" onchange="handleExcelUpload(event)">
-      <button class="btn btn-sm btn-success" onclick="exportUpdatedExcel()" title="依據目前搜尋篩選結果與排序匯出清冊">
-        <i class="bi bi-download me-1"></i>匯出清冊
-      </button>
-    </div>
+<!-- 頂部雙頁籤切換列：「簡易快速查詢」與「財產查詢」 -->
+<div class="main-nav-tabs shadow-sm">
+  <div class="container-fluid px-0 d-flex">
+    <button type="button" class="main-tab-btn" id="tabBtnQuick" onclick="switchMainTab('quick')">
+      <i class="bi bi-phone-vibrate me-1"></i>簡易快速查詢
+    </button>
+    <button type="button" class="main-tab-btn active" id="tabBtnFull" onclick="switchMainTab('full')">
+      <i class="bi bi-table me-1"></i>財產查詢 <span class="badge rounded-pill bg-secondary-subtle text-secondary ms-1 fw-normal" id="tabTotalBadge">0</span>
+    </button>
   </div>
 </div>
 
-<div class="container-fluid my-3">
-  <!-- 搜尋與過濾器 (6欄配置) -->
-  <div class="card shadow-sm border-0 mb-3">
-    <div class="card-body p-3">
-      <div class="row g-2">
-        <div class="col-12 col-md-4 col-lg-2">
-          <div class="input-group">
-            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" id="searchInput" class="form-control" placeholder="搜尋編號、品名..." oninput="renderTable()">
-            <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()"><i class="bi bi-x"></i></button>
+<!-- ========================================================= -->
+<!-- 頁籤視圖 1：簡易快速查詢 (專為手機單手操作、後4碼與半螢幕掃碼設計) -->
+<!-- ========================================================= -->
+<div id="quickQueryView" style="display: none;">
+  <div class="container py-2" style="max-width: 640px;">
+    
+    <!-- ミニ進度摘要與子模式切換按鈕 -->
+    <div class="d-flex justify-content-between align-items-center bg-white rounded-3 px-3 py-2 mb-2 shadow-sm border">
+      <div class="small">
+        <span class="text-muted">總數 <strong id="quickStatTotal" class="text-dark">0</strong></span>
+        <span class="mx-1 text-muted">|</span>
+        <span class="text-success">已盤 <strong id="quickStatChecked">0</strong></span>
+        <span class="mx-1 text-muted">|</span>
+        <span class="text-danger">未盤 <strong id="quickStatUnchecked">0</strong></span>
+      </div>
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="quickSubModeBadge">鍵盤後4碼模式</span>
+    </div>
+
+    <!-- 子模式快速切換按鈕：「🔢 鍵盤後4碼模式」與「📷 相機掃描模式」 -->
+    <div class="btn-group w-100 mb-2 shadow-sm" role="group" aria-label="快速查詢子模式切換">
+      <button type="button" class="btn btn-primary fw-bold py-2" id="btnSubModeKeypad" onclick="switchQuickSubMode('keypad')">
+        <i class="bi bi-grid-3x3-gap-fill me-1"></i>🔢 鍵盤後4碼模式
+      </button>
+      <button type="button" class="btn btn-outline-primary bg-white fw-bold py-2" id="btnSubModeCamera" onclick="switchQuickSubMode('camera')">
+        <i class="bi bi-upc-scan me-1"></i>📷 相機掃描模式
+      </button>
+    </div>
+
+    <!-- 子模式 A：🔢 鍵盤後 4 碼輸入區 (預設顯示) -->
+    <div id="quickKeypadSection" class="card border-0 shadow-sm mb-3">
+      <div class="card-body p-3 text-center">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="small fw-bold text-secondary"><i class="bi bi-123 me-1"></i>輸入財產編號後 4 碼</span>
+          <span class="small text-muted" id="pinInputHint">輸入滿 4 碼自動查詢</span>
+        </div>
+
+        <!-- 4 碼數字格顯示器 (避免跳出手機原生輸入法) -->
+        <div class="pin-display-container" onclick="focusPinDisplay()">
+          <div class="pin-digit-box active-slot" id="pinSlot0"></div>
+          <div class="pin-digit-box" id="pinSlot1"></div>
+          <div class="pin-digit-box" id="pinSlot2"></div>
+          <div class="pin-digit-box" id="pinSlot3"></div>
+        </div>
+
+        <!-- 九宮格數字虛擬鍵盤 -->
+        <div class="numpad-grid">
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('1')">1</button>
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('2')">2</button>
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('3')">3</button>
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('4')">4</button>
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('5')">5</button>
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('6')">6</button>
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('7')">7</button>
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('8')">8</button>
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('9')">9</button>
+          <button type="button" class="numpad-btn btn-clear" onclick="clearQuickPin()">
+            <i class="bi bi-trash2 me-1"></i>清空 C
+          </button>
+          <button type="button" class="numpad-btn" onclick="pressQuickDigit('0')">0</button>
+          <button type="button" class="numpad-btn btn-backspace" onclick="backspaceQuickPin()">
+            <i class="bi bi-backspace-fill me-1"></i>退格
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 子模式 B：📷 半螢幕相機掃描區 (比照上傳圖配置，佔螢幕高度 52% 以上) -->
+    <div id="quickCameraSection" class="mb-3" style="display: none;">
+      <div class="quick-camera-wrapper shadow-sm">
+        <div class="quick-scanner-viewport">
+          <div id="quickReader"></div>
+          <!-- 白色四個直角標記 -->
+          <div class="corner-bracket corner-tl"></div>
+          <div class="corner-bracket corner-tr"></div>
+          <div class="corner-bracket corner-bl"></div>
+          <div class="corner-bracket corner-br"></div>
+          <!-- 中央紅色對焦掃描線 -->
+          <div class="quick-laser-line" id="quickLaserLine"></div>
+          <!-- 相機停止時的待機提示 -->
+          <div id="quickCamPausedOverlay" style="display:none; position:absolute; z-index:15;" class="text-center text-white p-3">
+            <i class="bi bi-camera-video-off display-4 d-block mb-2 text-warning"></i>
+            <div class="fw-bold mb-2">相機掃描已暫停</div>
+            <button type="button" class="btn btn-warning fw-bold px-4" onclick="toggleQuickScannerPlayPause()">
+              <i class="bi bi-play-fill me-1"></i>點擊重新啟動掃描
+            </button>
           </div>
         </div>
-        <div class="col-6 col-md-4 col-lg-2">
-          <select id="filterLocation" class="form-select" onchange="renderTable()">
-            <option value="">全部存放地點</option>
-          </select>
+      </div>
+
+      <!-- 批號與說明列 (比照參考圖淺藍底色) -->
+      <div class="quick-cam-info-strip d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-Lightning-charge-fill me-1"></i>即時盤點 (掃碼自動標記已盤點)</span>
+        <span class="badge bg-dark text-white" id="quickScanCountBadge">本次已掃: 0 件</span>
+      </div>
+
+      <!-- 停止掃描按鈕、補光燈與目前時間列 -->
+      <div class="quick-cam-control-bar">
+        <div class="d-flex gap-2 align-items-center">
+          <button type="button" class="btn-stop-scan-yellow" id="btnQuickStopResume" onclick="toggleQuickScannerPlayPause()">
+            停止掃描
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary fw-semibold" onclick="toggleQuickTorch()">
+            <i class="bi bi-lightbulb me-1"></i>補光燈
+          </button>
         </div>
-        <div class="col-6 col-md-4 col-lg-2">
-          <select id="filterCustodian" class="form-select" onchange="renderTable()">
-            <option value="">全部保管人員</option>
-          </select>
+        <div class="fw-bold text-primary font-monospace" style="font-size: 0.95rem;">
+          目前時間：<span id="quickLiveClock">-</span>
         </div>
-        <div class="col-6 col-md-4 col-lg-2">
-          <select id="filterStatus" class="form-select" onchange="renderTable()">
-            <option value="">全部使用狀態</option>
-            <option value="in_use">正常在用</option>
-            <option value="pending_scrap">擬報廢</option>
-            <option value="scrapped">已報廢</option>
-          </select>
+      </div>
+
+      <!-- 掃描資產編號顯示列 -->
+      <div class="quick-scan-code-bar">
+        <span class="quick-scan-code-label">掃描資產編號:</span>
+        <div class="quick-scan-code-box" id="quickScannedCodeText">-</div>
+      </div>
+    </div>
+
+    <!-- 查詢 / 掃描結果卡片顯示區 -->
+    <div id="quickResultContainer" class="mt-2">
+      <div class="text-center text-muted py-4 bg-white rounded-3 border shadow-sm">
+        <i class="bi bi-search display-6 d-block mb-2 text-secondary"></i>
+        <div class="fw-semibold">請輸入財產編號後 4 碼，或切換至相機掃描條碼</div>
+        <div class="small mt-1">查詢結果與完整財產資訊將立即顯示於此處</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================================================= -->
+<!-- 頁籤視圖 2：財產查詢 (原本完整的搜尋、篩選、批次與表格管理介面) -->
+<!-- ========================================================= -->
+<div id="fullManageView">
+  <!-- 狀態摘要與批次操作/匯入匯出列 -->
+  <div class="sticky-summary py-2 border-bottom">
+    <div class="container-fluid d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div class="d-flex flex-wrap gap-3 align-items-center">
+        <span class="small text-muted">總設備: <strong id="statTotal" class="text-dark">0</strong></span>
+        <span class="small text-success">已盤點: <strong id="statChecked">0</strong></span>
+        <span class="small text-danger">未盤點: <strong id="statUnchecked">0</strong></span>
+        <span class="small text-warning text-dark">擬報廢: <strong id="statPendingScrap">0</strong></span>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">目前篩選: <strong id="statFiltered">0</strong> 筆</span>
+        <span id="selectedCountBadge" class="badge bg-info-subtle text-info-emphasis border border-info-subtle" style="display:none;">已勾選: <strong id="statSelected">0</strong> 筆</span>
+      </div>
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <div class="btn-group btn-group-sm" role="group" aria-label="批次盤點操作">
+          <button type="button" class="btn btn-primary fw-semibold" id="btnBatchCheck" onclick="batchSetChecked(true)" title="若有勾選則盤點勾選項目；未勾選則一鍵盤點目前篩選結果">
+            <i class="bi bi-check2-all me-1"></i><span id="btnBatchCheckText">一鍵盤點篩選</span>
+          </button>
+          <button type="button" class="btn btn-outline-secondary" id="btnBatchUncheck" onclick="batchSetChecked(false)" title="若有勾選則取消勾選項目盤點；未勾選則一鍵取消目前篩選結果盤點">
+            <i class="bi bi-x-circle me-1"></i><span id="btnBatchUncheckText">批次取消盤點</span>
+          </button>
         </div>
-        <div class="col-6 col-md-4 col-lg-2">
-          <select id="filterChecked" class="form-select" onchange="renderTable()">
-            <option value="">全部盤點狀態</option>
-            <option value="checked">已盤點</option>
-            <option value="unchecked">未盤點</option>
-          </select>
-        </div>
-        <div class="col-12 col-md-4 col-lg-2">
-          <select id="sortOrderSelect" class="form-select border-primary-subtle fw-semibold" onchange="handleSortSelectChange(this.value)">
-            <option value="default">⇅ 預設順序 (依編號排列)</option>
-            <option value="desc">▼ 最新盤點優先 (新 ➔ 舊)</option>
-            <option value="asc">▲ 最舊盤點優先 (舊 ➔ 新)</option>
-          </select>
-        </div>
+        <div class="vr d-none d-sm-block mx-1"></div>
+        <button class="btn btn-sm btn-outline-success" onclick="document.getElementById('excelFileInput').click()">
+          <i class="bi bi-file-earmark-excel me-1"></i>匯入 Excel
+        </button>
+        <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display:none" onchange="handleExcelUpload(event)">
+        <button class="btn btn-sm btn-success" onclick="exportUpdatedExcel()" title="依據目前搜尋篩選結果與排序匯出清冊">
+          <i class="bi bi-download me-1"></i>匯出清冊
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- 設備清單表格 -->
-  <div class="card shadow-sm border-0">
-    <div class="table-responsive" style="max-height: 70vh;">
-      <table class="table table-hover align-middle mb-0" id="assetTable">
-        <thead class="table-light sticky-top">
-          <tr>
-            <th style="width: 42px;" class="text-center">
-              <input class="form-check-input batch-select-cb" type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllVisible(this.checked)" title="全選 / 取消全選目前畫面設備">
-            </th>
-            <th style="width: 95px;" class="text-center">盤點狀態</th>
-            <th>財產編號 / 條碼號</th>
-            <th>財產名稱 / 規格型號</th>
-            <th>存放地點</th>
-            <th>保管人員</th>
-            <th>狀態</th>
-            <th class="sortable-th" onclick="cycleCheckDateSort()" title="點擊切換最後盤點日期排序">
-              最後盤點日期 <span id="sortHeaderIcon" class="text-muted ms-1">⇅</span>
-            </th>
-            <th class="text-end" style="min-width: 115px;">操作</th>
-          </tr>
-        </thead>
-        <tbody id="assetTableBody">
-          <tr>
-            <td colspan="9" class="text-center py-5 text-muted">
-              <i class="bi bi-folder2-open display-6 d-block mb-2"></i>
-              尚未載入任何財產資料，請點擊上方「匯入 Excel」上傳清冊
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <div class="container-fluid my-3">
+    <!-- 搜尋與過濾器 (6欄配置) -->
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body p-3">
+        <div class="row g-2">
+          <div class="col-12 col-md-4 col-lg-2">
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+              <input type="text" id="searchInput" class="form-control" placeholder="搜尋編號、品名..." oninput="renderTable()">
+              <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()"><i class="bi bi-x"></i></button>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-lg-2">
+            <select id="filterLocation" class="form-select" onchange="renderTable()">
+              <option value="">全部存放地點</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-4 col-lg-2">
+            <select id="filterCustodian" class="form-select" onchange="renderTable()">
+              <option value="">全部保管人員</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-4 col-lg-2">
+            <select id="filterStatus" class="form-select" onchange="renderTable()">
+              <option value="">全部使用狀態</option>
+              <option value="in_use">正常在用</option>
+              <option value="pending_scrap">擬報廢</option>
+              <option value="scrapped">已報廢</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-4 col-lg-2">
+            <select id="filterChecked" class="form-select" onchange="renderTable()">
+              <option value="">全部盤點狀態</option>
+              <option value="checked">已盤點</option>
+              <option value="unchecked">未盤點</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-4 col-lg-2">
+            <select id="sortOrderSelect" class="form-select border-primary-subtle fw-semibold" onchange="handleSortSelectChange(this.value)">
+              <option value="default">⇅ 預設順序 (依編號排列)</option>
+              <option value="desc">▼ 最新盤點優先 (新 ➔ 舊)</option>
+              <option value="asc">▲ 最舊盤點優先 (舊 ➔ 新)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 設備清單表格 -->
+    <div class="card shadow-sm border-0">
+      <div class="table-responsive" style="max-height: 70vh;">
+        <table class="table table-hover align-middle mb-0" id="assetTable">
+          <thead class="table-light sticky-top">
+            <tr>
+              <th style="width: 42px;" class="text-center">
+                <input class="form-check-input batch-select-cb" type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllVisible(this.checked)" title="全選 / 取消全選目前畫面設備">
+              </th>
+              <th style="width: 95px;" class="text-center">盤點狀態</th>
+              <th>財產編號 / 條碼號</th>
+              <th>財產名稱 / 規格型號</th>
+              <th>存放地點</th>
+              <th>保管人員</th>
+              <th>狀態</th>
+              <th class="sortable-th" onclick="cycleCheckDateSort()" title="點擊切換最後盤點日期排序">
+                最後盤點日期 <span id="sortHeaderIcon" class="text-muted ms-1">⇅</span>
+              </th>
+              <th class="text-end" style="min-width: 115px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="assetTableBody">
+            <tr>
+              <td colspan="9" class="text-center py-5 text-muted">
+                <i class="bi bi-folder2-open display-6 d-block mb-2"></i>
+                尚未載入任何財產資料，請點擊上方「匯入 Excel」上傳清冊
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- 相機連續盤點 Modal -->
+<!-- 相機連續盤點 Modal (頂部導覽列「相機盤點」按鈕專用) -->
 <div class="modal fade" id="scannerModal" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -417,11 +837,25 @@ let assetsMap = new Map();
 let locationsSet = new Set();
 let custodiansSet = new Set();
 let selectedKeysSet = new Set(); // 儲存使用者額外挑選出來的設備 key
+
+// 彈窗掃描器變數
 let html5QrCode = null;
 let lastScannedCode = '';
 let scanCooldownTimer = null;
 let scanSuccessCount = 0;
 let isTorchOn = false;
+
+// 簡易快速查詢變數
+let currentMainTab = 'full'; // 'quick' | 'full'
+let currentQuickSubMode = 'keypad'; // 'keypad' | 'camera'
+let quickPin = ''; // 儲存後 4 碼輸入字串
+let currentQuickMatchedKeys = []; // 目前快速查詢顯示中的設備 keys
+let lastQuickResultSource = ''; // 'keypad' | 'camera'
+let quickHtml5QrCode = null;
+let isQuickScannerStarting = false;
+let isQuickTorchOn = false;
+let quickScanSuccessCount = 0;
+let quickClockTimer = null;
 
 // 初始化本機 IndexedDB 快取
 function initIndexedDB() {
@@ -529,7 +963,528 @@ async function initSystem() {
     rebuildFilterSets();
     renderTable();
     updateStats();
+    refreshQuickResultsIfActive();
   });
+}
+
+// =========================================================
+// 頂部主頁籤與簡易快速查詢邏輯 (雙頁籤 + 鍵盤後4碼 + 半螢幕相機)
+// =========================================================
+async function switchMainTab(tabName) {
+  currentMainTab = tabName;
+  const tabBtnQuick = document.getElementById('tabBtnQuick');
+  const tabBtnFull = document.getElementById('tabBtnFull');
+  const quickView = document.getElementById('quickQueryView');
+  const fullView = document.getElementById('fullManageView');
+
+  if (tabName === 'quick') {
+    tabBtnQuick.classList.add('active');
+    tabBtnFull.classList.remove('active');
+    quickView.style.display = 'block';
+    fullView.style.display = 'none';
+    if (currentQuickSubMode === 'camera') {
+      startQuickClock();
+      await startQuickScanner();
+    }
+  } else {
+    tabBtnFull.classList.add('active');
+    tabBtnQuick.classList.remove('active');
+    quickView.style.display = 'none';
+    fullView.style.display = 'block';
+    stopQuickClock();
+    await stopQuickScanner();
+    renderTable();
+    updateStats();
+  }
+}
+
+async function switchQuickSubMode(subMode) {
+  currentQuickSubMode = subMode;
+  const btnKeypad = document.getElementById('btnSubModeKeypad');
+  const btnCamera = document.getElementById('btnSubModeCamera');
+  const keypadSec = document.getElementById('quickKeypadSection');
+  const cameraSec = document.getElementById('quickCameraSection');
+  const badge = document.getElementById('quickSubModeBadge');
+
+  if (subMode === 'keypad') {
+    btnKeypad.className = 'btn btn-primary fw-bold py-2';
+    btnCamera.className = 'btn btn-outline-primary bg-white fw-bold py-2';
+    keypadSec.style.display = 'block';
+    cameraSec.style.display = 'none';
+    badge.innerText = '鍵盤後4碼模式';
+    stopQuickClock();
+    await stopQuickScanner();
+  } else {
+    btnCamera.className = 'btn btn-primary fw-bold py-2';
+    btnKeypad.className = 'btn btn-outline-primary bg-white fw-bold py-2';
+    keypadSec.style.display = 'none';
+    cameraSec.style.display = 'block';
+    badge.innerText = '相機掃描模式';
+    startQuickClock();
+    await startQuickScanner();
+  }
+}
+
+function updateQuickClockDisplay() {
+  const el = document.getElementById('quickLiveClock');
+  if (!el) return;
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  el.innerText = `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
+function startQuickClock() {
+  stopQuickClock();
+  updateQuickClockDisplay();
+  quickClockTimer = setInterval(updateQuickClockDisplay, 1000);
+}
+
+function stopQuickClock() {
+  if (quickClockTimer) {
+    clearInterval(quickClockTimer);
+    quickClockTimer = null;
+  }
+}
+
+// 虛擬數字鍵盤輸入處理 (含滿4碼自動清空連續輸入優化)
+function pressQuickDigit(digit) {
+  // 若目前已滿 4 碼，再按任意數字鍵時自動清空上一筆並以新數字作為第 1 碼
+  if (quickPin.length >= 4) {
+    quickPin = String(digit);
+  } else {
+    quickPin += String(digit);
+  }
+  updateQuickPinUI();
+
+  if (quickPin.length === 4) {
+    executeQuickPinSearch(quickPin);
+  }
+}
+
+function backspaceQuickPin() {
+  if (quickPin.length > 0) {
+    quickPin = quickPin.slice(0, -1);
+    updateQuickPinUI();
+  }
+}
+
+function clearQuickPin() {
+  quickPin = '';
+  currentQuickMatchedKeys = [];
+  updateQuickPinUI();
+  const container = document.getElementById('quickResultContainer');
+  if (container) {
+    container.innerHTML = `
+      <div class="text-center text-muted py-4 bg-white rounded-3 border shadow-sm">
+        <i class="bi bi-search display-6 d-block mb-2 text-secondary"></i>
+        <div class="fw-semibold">請輸入財產編號後 4 碼，或切換至相機掃描條碼</div>
+        <div class="small mt-1">查詢結果與完整財產資訊將立即顯示於此處</div>
+      </div>
+    `;
+  }
+}
+
+function focusPinDisplay() {
+  updateQuickPinUI();
+}
+
+function updateQuickPinUI() {
+  for (let i = 0; i < 4; i++) {
+    const slot = document.getElementById('pinSlot' + i);
+    if (!slot) continue;
+    const ch = quickPin[i] || '';
+    slot.innerText = ch;
+    slot.className = 'pin-digit-box';
+    if (ch) {
+      slot.classList.add('filled-slot');
+    } else if (i === quickPin.length) {
+      slot.classList.add('active-slot');
+    }
+  }
+  const hint = document.getElementById('pinInputHint');
+  if (hint) {
+    if (quickPin.length === 4) {
+      hint.innerHTML = '<span class="text-primary fw-semibold">已滿4碼，直接按數字鍵可查下一筆</span>';
+    } else {
+      hint.innerText = '輸入滿 4 碼自動查詢';
+    }
+  }
+}
+
+// 依據後 4 碼執行查詢 (方案 A：安全防呆，僅顯示設備資訊卡，不自動標記已盤點)
+function executeQuickPinSearch(pin4) {
+  const matches = [];
+  assetsMap.forEach(item => {
+    const noStr = String(item.assetNo || item.assetKey || '').trim();
+    const oldStr = String(item.oldNo || '').trim();
+    if (noStr.endsWith(pin4) || (oldStr && oldStr.endsWith(pin4))) {
+      matches.push(item);
+    }
+  });
+
+  lastQuickResultSource = 'keypad';
+  currentQuickMatchedKeys = matches.map(m => m.assetKey);
+
+  if (matches.length > 0) {
+    playBeep(880, 0.08);
+    renderQuickResultCards(matches, `末 4 碼 [${pin4}] 查詢結果`, false);
+  } else {
+    playBeep(320, 0.2);
+    const container = document.getElementById('quickResultContainer');
+    container.innerHTML = `
+      <div class="alert alert-danger d-flex align-items-center shadow-sm mb-0" role="alert">
+        <i class="bi bi-exclamation-octagon-fill fs-3 me-3"></i>
+        <div>
+          <div class="fw-bold">查無末 4 碼為「${pin4}」的財產設備</div>
+          <div class="small">請確認號碼是否正確，或直接按數字鍵輸入下一組後 4 碼。</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// 渲染簡易快速查詢的結果卡片
+function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighlight = false) {
+  const container = document.getElementById('quickResultContainer');
+  if (!container) return;
+
+  if (!items || items.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const nowMs = Date.now();
+  let html = `
+    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+      <span class="fw-bold text-dark"><i class="bi bi-card-heading me-1 text-primary"></i>${headerTitle}</span>
+      <span class="badge bg-primary">共找到 ${items.length} 筆</span>
+    </div>
+  `;
+
+  items.forEach(item => {
+    let statusBadge = '<span class="badge badge-status-in_use">正常在用</span>';
+    if (item.status === 'pending_scrap') statusBadge = '<span class="badge badge-status-pending_scrap">擬報廢</span>';
+    if (item.status === 'scrapped') statusBadge = '<span class="badge badge-status-scrapped">已報廢</span>';
+
+    const ts = getRawTimestamp(item);
+    const isOverYear = ts > 1 && (nowMs - ts >= ONE_YEAR_MS);
+
+    let checkStatusBadge = '';
+    if (item.checked) {
+      checkStatusBadge = `<span class="badge bg-success fs-6"><i class="bi bi-check-circle-fill me-1"></i>已盤點</span>`;
+    } else if (isOverYear || item.autoExpired) {
+      checkStatusBadge = `<span class="badge bg-danger fs-6"><i class="bi bi-exclamation-circle-fill me-1"></i>未盤點 (逾1年)</span>`;
+    } else {
+      checkStatusBadge = `<span class="badge bg-secondary fs-6"><i class="bi bi-circle me-1"></i>未盤點</span>`;
+    }
+
+    const actionCheckBtn = item.checked
+      ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-2" onclick="quickToggleAssetChecked('${item.assetKey}')">
+           <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
+         </button>`
+      : `<button type="button" class="btn btn-success fw-bold flex-fill py-2 shadow-sm" onclick="quickToggleAssetChecked('${item.assetKey}')">
+           <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
+         </button>`;
+
+    html += `
+      <div class="quick-asset-card p-3 mb-3 ${item.checked ? 'is-checked' : ''} ${flashHighlight ? 'animate-card-flash-5' : ''}">
+        <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-2">
+          <div>
+            <div class="fs-4 fw-bold text-primary font-monospace lh-sm">${item.assetNo || item.assetKey}</div>
+            <div class="small text-muted font-monospace">分類編號: ${item.categoryCode || '-'} ${item.oldNo ? `| 舊號: ${item.oldNo}` : ''}</div>
+          </div>
+          <div class="text-end d-flex flex-column gap-1 align-items-end">
+            ${checkStatusBadge}
+            ${statusBadge}
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <div class="fs-5 fw-bold text-dark">${item.name}</div>
+          <div class="small text-secondary">${item.spec || '無規格型號說明'}</div>
+        </div>
+
+        <div class="quick-info-grid mb-2">
+          <div class="quick-info-item">
+            <div class="text-muted" style="font-size: 0.75rem;">存放地點</div>
+            <div class="fw-bold text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${item.location || '未設定'}</div>
+          </div>
+          <div class="quick-info-item">
+            <div class="text-muted" style="font-size: 0.75rem;">保管人員</div>
+            <div class="fw-bold text-dark"><i class="bi bi-person-fill text-primary me-1"></i>${item.custodian || '-'} ${item.custodianCode ? `<span class="small text-muted">(${item.custodianCode})</span>` : ''}</div>
+          </div>
+          <div class="quick-info-item">
+            <div class="text-muted" style="font-size: 0.75rem;">購置日期 / 年限</div>
+            <div class="small fw-semibold text-dark">${item.purchaseDate || '-'} (年限:${item.lifespan || '-'}年 / 已用:${item.usedYears || '-'})</div>
+          </div>
+          <div class="quick-info-item">
+            <div class="text-muted" style="font-size: 0.75rem;">最後盤點時間</div>
+            <div class="small fw-semibold ${item.checked ? 'text-success' : 'text-secondary'} font-monospace">${item.checkedTime || '尚無紀錄'}</div>
+          </div>
+        </div>
+
+        <div class="small text-muted mb-2 d-flex flex-wrap gap-3 px-1">
+          <span>數量/單位：<strong>${item.qty || '1'} ${item.unit || ''}</strong></span>
+          <span>總價：<strong>NT$ ${item.price ? Number(item.price).toLocaleString() : '-'}</strong></span>
+        </div>
+
+        ${item.notes ? `<div class="p-2 bg-info-subtle text-info-emphasis rounded small mb-2"><i class="bi bi-sticky-fill me-1"></i>備註：${item.notes}</div>` : ''}
+        ${item.scrapReason ? `<div class="p-2 bg-danger-subtle text-danger-emphasis rounded small mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>報廢原因：${item.scrapReason}</div>` : ''}
+
+        <div class="d-flex gap-2 mt-2 pt-2 border-top">
+          ${actionCheckBtn}
+          <button type="button" class="btn btn-primary fw-bold flex-fill py-2" onclick="openDetailModal('${item.assetKey}')">
+            <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// 在簡易快速查詢卡片中點擊切換「已盤點 / 取消盤點」
+function quickToggleAssetChecked(key) {
+  const asset = assetsMap.get(key);
+  if (!asset) return;
+  const now = new Date();
+  const nextState = !asset.checked;
+  asset.checked = nextState;
+
+  if (nextState) {
+    asset.checkedTime = formatDateTime(now);
+    asset.checkedTimestamp = now.getTime();
+    asset.autoExpired = false;
+    if (!asset.history) asset.history = [];
+    asset.history.push({ time: asset.checkedTime, action: '快速查詢確認盤點', note: '透過手機簡易快速查詢標記已盤點' });
+    playBeep(987, 0.12);
+    triggerVibration();
+  } else {
+    if (!asset.history) asset.history = [];
+    asset.history.push({ time: formatDateTime(now), action: '快速查詢取消盤點', note: '取消已盤點標記（保留歷史盤點時間）' });
+  }
+
+  saveAsset(asset);
+  updateStats();
+  renderTable();
+  refreshQuickResultsIfActive();
+}
+
+function refreshQuickResultsIfActive() {
+  if (currentQuickMatchedKeys.length === 0) return;
+  const updatedItems = currentQuickMatchedKeys.map(k => assetsMap.get(k)).filter(Boolean);
+  if (updatedItems.length === 0) {
+    clearQuickPin();
+    return;
+  }
+  const title = lastQuickResultSource === 'camera'
+    ? `條碼掃描命中設備`
+    : `末 4 碼 [${quickPin}] 查詢結果`;
+  renderQuickResultCards(updatedItems, title, false);
+}
+
+// =========================================================
+// 簡易快速查詢：半螢幕內嵌相機掃描與快速對焦控制
+// =========================================================
+async function startQuickScanner() {
+  if (isQuickScannerStarting) return;
+  if (quickHtml5QrCode && quickHtml5QrCode.isScanning) return;
+
+  // 確保彈窗掃描器已關閉，避免鏡頭衝突
+  await stopScanner();
+  isQuickScannerStarting = true;
+
+  const readerEl = document.getElementById('quickReader');
+  if (readerEl) readerEl.innerHTML = '';
+
+  const pausedOverlay = document.getElementById('quickCamPausedOverlay');
+  if (pausedOverlay) pausedOverlay.style.display = 'none';
+  const laserLine = document.getElementById('quickLaserLine');
+  if (laserLine) laserLine.style.display = 'block';
+  const btnStopResume = document.getElementById('btnQuickStopResume');
+  if (btnStopResume) {
+    btnStopResume.innerText = '停止掃描';
+    btnStopResume.className = 'btn-stop-scan-yellow';
+  }
+
+  try {
+    quickHtml5QrCode = new Html5Qrcode('quickReader');
+    const config = {
+      fps: 20,
+      qrbox: (viewfinderWidth, viewfinderHeight) => {
+        const w = Math.max(Math.floor(viewfinderWidth * 0.88), 220);
+        const h = Math.max(Math.floor(viewfinderHeight * 0.55), 130);
+        return { width: w, height: h };
+      },
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    };
+
+    await quickHtml5QrCode.start(
+      { facingMode: 'environment' },
+      config,
+      onQuickBarcodeScanned,
+      () => {}
+    );
+
+    // 嘗試套用連續自動對焦 (Continuous Autofocus) 加速條碼對焦
+    try {
+      await quickHtml5QrCode.applyVideoConstraints({
+        advanced: [{ focusMode: 'continuous' }]
+      });
+    } catch (focusErr) {}
+  } catch (err) {
+    console.error('快速查詢相機啟動失敗:', err);
+    if (pausedOverlay) pausedOverlay.style.display = 'block';
+    if (laserLine) laserLine.style.display = 'none';
+    if (btnStopResume) {
+      btnStopResume.innerText = '啟動掃描';
+      btnStopResume.className = 'btn btn-success fw-bold px-3';
+    }
+    alert('無法啟動相機：請確認透過 HTTPS 安全網址開啟並允許相機權限。
+' + err);
+  } finally {
+    isQuickScannerStarting = false;
+  }
+}
+
+async function stopQuickScanner() {
+  if (quickHtml5QrCode) {
+    try {
+      if (quickHtml5QrCode.isScanning) {
+        await quickHtml5QrCode.stop();
+      }
+    } catch (e) {}
+    try {
+      quickHtml5QrCode.clear();
+    } catch (e) {}
+    quickHtml5QrCode = null;
+  }
+
+  // 強制釋放 iOS Safari / Android MediaStreamTrack
+  const readerEl = document.getElementById('quickReader');
+  if (readerEl) {
+    const videos = readerEl.getElementsByTagName('video');
+    for (let v of videos) {
+      if (v.srcObject) {
+        try {
+          v.srcObject.getTracks().forEach(track => track.stop());
+        } catch (e) {}
+        v.srcObject = null;
+      }
+    }
+    readerEl.innerHTML = '';
+  }
+  isQuickTorchOn = false;
+}
+
+async function toggleQuickScannerPlayPause() {
+  const pausedOverlay = document.getElementById('quickCamPausedOverlay');
+  const laserLine = document.getElementById('quickLaserLine');
+  const btnStopResume = document.getElementById('btnQuickStopResume');
+
+  if (quickHtml5QrCode && quickHtml5QrCode.isScanning) {
+    await stopQuickScanner();
+    if (pausedOverlay) pausedOverlay.style.display = 'block';
+    if (laserLine) laserLine.style.display = 'none';
+    if (btnStopResume) {
+      btnStopResume.innerText = '啟動掃描';
+      btnStopResume.className = 'btn btn-success fw-bold px-3';
+    }
+  } else {
+    await startQuickScanner();
+  }
+}
+
+function toggleQuickTorch() {
+  if (quickHtml5QrCode && quickHtml5QrCode.isScanning) {
+    isQuickTorchOn = !isQuickTorchOn;
+    quickHtml5QrCode.applyVideoConstraints({
+      advanced: [{ torch: isQuickTorchOn }]
+    }).catch(() => alert('此裝置或瀏覽器不支援手電筒補光控制'));
+  }
+}
+
+// 共用條碼比對邏輯 (含去除前後星號與公務物品 8 碼 9 開頭容錯)
+function findAssetByBarcode(rawDecodedText) {
+  const cleanCode = rawDecodedText.trim();
+  const normCode = cleanCode.replace(/^\*+|\*+$/g, '');
+  let found = assetsMap.get(normCode);
+
+  if (!found) {
+    let stripCode = (normCode.length === 8 && normCode.startsWith('9')) ? normCode.substring(1) : normCode;
+    found = assetsMap.get(stripCode);
+
+    if (!found) {
+      for (let item of assetsMap.values()) {
+        if (
+          item.assetNo === normCode ||
+          item.assetNo === stripCode ||
+          item.assetKey === stripCode ||
+          (item.assetNo && normCode.endsWith(item.assetNo)) ||
+          item.oldNo === normCode
+        ) {
+          found = item;
+          break;
+        }
+      }
+    }
+  }
+  return { cleanCode, normCode, found };
+}
+
+// 簡易快速查詢：相機掃到條碼時的回呼 (自動標記已盤點並顯示完整資訊卡)
+function onQuickBarcodeScanned(decodedText) {
+  const { cleanCode, found } = findAssetByBarcode(decodedText);
+
+  if (cleanCode === lastScannedCode) return;
+  lastScannedCode = cleanCode;
+  clearTimeout(scanCooldownTimer);
+  scanCooldownTimer = setTimeout(() => { lastScannedCode = ''; }, 2500);
+
+  const codeBox = document.getElementById('quickScannedCodeText');
+  if (codeBox) codeBox.innerText = cleanCode;
+
+  if (found) {
+    playBeep(987, 0.15);
+    triggerVibration();
+
+    const now = new Date();
+    found.checked = true;
+    found.checkedTime = formatDateTime(now);
+    found.checkedTimestamp = now.getTime();
+    found.autoExpired = false;
+    if (!found.history) found.history = [];
+    found.history.push({ time: found.checkedTime, action: '快速查詢相機盤點', note: '手機半螢幕掃碼確認在用正常' });
+    saveAsset(found);
+
+    quickScanSuccessCount++;
+    const countBadge = document.getElementById('quickScanCountBadge');
+    if (countBadge) countBadge.innerText = `本次已掃: ${quickScanSuccessCount} 件`;
+
+    lastQuickResultSource = 'camera';
+    currentQuickMatchedKeys = [found.assetKey];
+    updateStats();
+    renderQuickResultCards([found], `條碼 [${cleanCode}] 掃描成功 (已自動標記盤點)`, true);
+  } else {
+    playBeep(320, 0.25);
+    const container = document.getElementById('quickResultContainer');
+    if (container) {
+      container.innerHTML = `
+        <div class="alert alert-danger d-flex align-items-center shadow-sm mb-0" role="alert">
+          <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+          <div>
+            <div class="fw-bold">條碼 [${cleanCode}] 查無對應設備！</div>
+            <div class="small">請確認是否已匯入最新 Excel 清冊，或改用「🔢 鍵盤後4碼模式」查詢。</div>
+          </div>
+        </div>
+      `;
+    }
+  }
 }
 
 // 儲存單筆異動
@@ -543,22 +1498,29 @@ function deleteAssetByKey(key) {
   const asset = assetsMap.get(key);
   if (!asset) return;
 
-  const confirmMsg = `確定要永久刪除整筆財產資料嗎？\n\n【財產編號】：${asset.assetNo || asset.assetKey}\n【財產名稱】：${asset.name}\n【保管人員】：${asset.custodian || '-'}\n\n此動作將同步從雲端資料庫抹除，且無法復原！`;
+  const confirmMsg = `確定要永久刪除整筆財產資料嗎？
+
+【財產編號】：${asset.assetNo || asset.assetKey}
+【財產名稱】：${asset.name}
+【保管人員】：${asset.custodian || '-'}
+
+此動作將同步從雲端資料庫抹除，且無法復原！`;
   if (!confirm(confirmMsg)) return;
 
-  // 若詳情視窗開啟中，先關閉視窗
   const modalEl = document.getElementById('assetDetailModal');
   const modalInst = bootstrap.Modal.getInstance(modalEl);
   if (modalInst) modalInst.hide();
 
   assetsMap.delete(key);
   selectedKeysSet.delete(key);
+  currentQuickMatchedKeys = currentQuickMatchedKeys.filter(k => k !== key);
   deleteFromIDB(key);
   firebaseDb.ref('assets/' + key).remove();
 
   rebuildFilterSets();
   updateStats();
   renderTable();
+  refreshQuickResultsIfActive();
 }
 
 function deleteCurrentAsset() {
@@ -593,7 +1555,9 @@ function handleExcelUpload(e) {
         return;
       }
 
-      const headers = rawJson[headerRowIdx].map(h => String(h).trim().replace(/\r?\n/g, ''));
+      const headers = rawJson[headerRowIdx].map(h => String(h).trim().replace(/
+?
+/g, ''));
       let importedCount = 0;
       let mergedCount = 0;
       const batchUpdates = {};
@@ -614,7 +1578,9 @@ function handleExcelUpload(e) {
         }
 
         // 拆解雙行財產編號
-        const idParts = rawPropId.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
+        const idParts = rawPropId.split(/
+?
++/).map(s => s.trim()).filter(Boolean);
         let categoryCode = '';
         let assetNo = '';
         if (idParts.length >= 2) {
@@ -630,11 +1596,15 @@ function handleExcelUpload(e) {
 
         // 拆解保管人代號與姓名
         const rawCustodian = item['保管人員'] || '';
-        const custodianParts = rawCustodian.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
+        const custodianParts = rawCustodian.split(/
+?
++/).map(s => s.trim()).filter(Boolean);
         const custodianCode = custodianParts.length > 1 ? custodianParts[0] : '';
         const custodian = custodianParts.length > 1 ? custodianParts[1] : (custodianParts[0] || '');
 
-        const spec = (item['形式品名'] || item['形式/品名'] || '').replace(/\r?\n+/g, ' ').trim();
+        const spec = (item['形式品名'] || item['形式/品名'] || '').replace(/
+?
++/g, ' ').trim();
 
         // 智慧合併：若雲端已有此財產，保留已異動之地點、保管人、狀態、備註與盤點紀錄
         const existing = assetsMap.get(assetKey);
@@ -683,7 +1653,9 @@ function handleExcelUpload(e) {
       rebuildFilterSets();
       renderTable();
       updateStats();
-      alert(`Excel 匯入並同步雲端完成！\n新增設備: ${importedCount} 筆\n智慧合併更新: ${mergedCount} 筆`);
+      alert(`Excel 匯入並同步雲端完成！
+新增設備: ${importedCount} 筆
+智慧合併更新: ${mergedCount} 筆`);
     } catch (err) {
       console.error(err);
       alert('解析 Excel 失敗：' + err.message);
@@ -753,23 +1725,20 @@ function sortAssetsArray(arr) {
     const hasTimeB = tsB > 0;
 
     if (checkDateSortMode === 'desc') {
-      // ▼ 最新盤點優先（新 ➔ 舊），從未盤點排最後
       if (hasTimeA !== hasTimeB) return hasTimeA ? -1 : 1;
       if (hasTimeA && hasTimeB && tsB !== tsA) return tsB - tsA;
       return String(a.assetKey).localeCompare(String(b.assetKey));
     } else if (checkDateSortMode === 'asc') {
-      // ▲ 最舊盤點優先（舊 ➔ 新），從未盤點排最後
       if (hasTimeA !== hasTimeB) return hasTimeA ? -1 : 1;
       if (hasTimeA && hasTimeB && tsA !== tsB) return tsA - tsB;
       return String(a.assetKey).localeCompare(String(b.assetKey));
     } else {
-      // ⇅ 預設順序：依財產編號順序排列
       return String(a.assetKey).localeCompare(String(b.assetKey));
     }
   });
 }
 
-// 共用：取得目前搜尋、下拉篩選並依指定排序排列後的設備陣列 (供表格渲染、批次盤點與匯出清冊共用)
+// 共用：取得目前搜尋、下拉篩選並依指定排序排列後的設備陣列
 function getFilteredAndSortedAssets() {
   const search = document.getElementById('searchInput').value.trim().toLowerCase();
   const filterLoc = document.getElementById('filterLocation').value;
@@ -793,7 +1762,7 @@ function getFilteredAndSortedAssets() {
   return sortAssetsArray(filtered);
 }
 
-// 單筆勾選與全選處理 (挑選出幾台設備的選取機制)
+// 單筆勾選與全選處理
 function toggleRowSelection(key, isSelected) {
   if (isSelected) {
     selectedKeysSet.add(key);
@@ -816,7 +1785,6 @@ function updateBatchSelectionUI() {
   const visibleItems = getFilteredAndSortedAssets();
   const visibleSelectedCount = visibleItems.filter(item => selectedKeysSet.has(item.assetKey)).length;
 
-  // 更新表頭全選核取方塊狀態
   const selectAllEl = document.getElementById('selectAllCheckbox');
   if (selectAllEl) {
     if (visibleItems.length === 0) {
@@ -834,7 +1802,6 @@ function updateBatchSelectionUI() {
     }
   }
 
-  // 更新上方已勾選徽章與批次按鈕動態文字
   const selBadge = document.getElementById('selectedCountBadge');
   const statSelectedEl = document.getElementById('statSelected');
   const btnCheckText = document.getElementById('btnBatchCheckText');
@@ -853,7 +1820,7 @@ function updateBatchSelectionUI() {
   }
 }
 
-// 執行批次盤點或批次取消盤點 (同時支援「挑選出來的勾選設備」與「一鍵篩選結果」)
+// 執行批次盤點或批次取消盤點
 async function batchSetChecked(targetCheckedState) {
   const visibleItems = getFilteredAndSortedAssets();
   if (visibleItems.length === 0) {
@@ -861,7 +1828,6 @@ async function batchSetChecked(targetCheckedState) {
     return;
   }
 
-  // 若使用者有在左方勾選特定幾台設備，優先針對勾選的設備進行批次處理；否則針對目前篩選出的所有設備一鍵處理
   const selectedVisibleItems = visibleItems.filter(item => selectedKeysSet.has(item.assetKey));
   const isUsingSelection = selectedVisibleItems.length > 0;
   const targetItems = isUsingSelection ? selectedVisibleItems : visibleItems;
@@ -905,7 +1871,6 @@ async function batchSetChecked(targetCheckedState) {
     saveToIDB(item);
   });
 
-  // 完成批次操作後自動清空勾選狀態
   if (isUsingSelection) {
     targetItems.forEach(item => selectedKeysSet.delete(item.assetKey));
   }
@@ -943,12 +1908,10 @@ function renderTable() {
     if (item.status === 'pending_scrap') statusBadge = '<span class="badge badge-status-pending_scrap">擬報廢</span>';
     if (item.status === 'scrapped') statusBadge = '<span class="badge badge-status-scrapped">已報廢</span>';
 
-    // 盤點切換按鈕 (點擊一次已盤點、再點一次取消盤點)
     const checkBtnHtml = item.checked
       ? `<button type="button" class="btn btn-sm btn-success btn-check-toggle shadow-sm" onclick="toggleItemChecked('${item.assetKey}')"><i class="bi bi-check-circle-fill me-1"></i>已盤點</button>`
       : `<button type="button" class="btn btn-sm btn-outline-secondary btn-check-toggle bg-white" onclick="toggleItemChecked('${item.assetKey}')"><i class="bi bi-circle me-1"></i>未盤點</button>`;
 
-    // 最後盤點日期呈現 (保留上次盤點時間，並區分已盤點 / 逾1年未盤 / 上次盤點)
     let checkTimeDisplay = '<span class="text-muted small">-</span>';
     if (item.checkedTime) {
       const parts = item.checkedTime.split(' ');
@@ -1021,10 +1984,22 @@ function updateStats() {
     if (a.checked) checked++;
     if (a.status === 'pending_scrap') pendingScrap++;
   });
+  const unchecked = total - checked;
+
   document.getElementById('statTotal').innerText = total;
   document.getElementById('statChecked').innerText = checked;
-  document.getElementById('statUnchecked').innerText = total - checked;
+  document.getElementById('statUnchecked').innerText = unchecked;
   document.getElementById('statPendingScrap').innerText = pendingScrap;
+
+  // 同步更新頂部頁籤徽章與簡易快速查詢統計
+  const tabBadge = document.getElementById('tabTotalBadge');
+  if (tabBadge) tabBadge.innerText = total;
+  const qTotal = document.getElementById('quickStatTotal');
+  if (qTotal) qTotal.innerText = total;
+  const qChecked = document.getElementById('quickStatChecked');
+  if (qChecked) qChecked.innerText = checked;
+  const qUnchecked = document.getElementById('quickStatUnchecked');
+  if (qUnchecked) qUnchecked.innerText = unchecked;
 }
 
 function updateLocationSelects() {
@@ -1091,11 +2066,11 @@ function toggleItemChecked(key) {
     asset.checkedTimestamp = now.getTime();
     asset.autoExpired = false;
   }
-  // 若取消盤點 (nextState === false)，保留原有的 asset.checkedTime 與 asset.checkedTimestamp
 
   saveAsset(asset);
   updateStats();
   renderTable();
+  refreshQuickResultsIfActive();
 }
 
 // 詳情與異動 Modal
@@ -1178,6 +2153,7 @@ function toggleCurrentAssetChecked() {
   saveAsset(asset);
   updateStats();
   renderTable();
+  refreshQuickResultsIfActive();
   openDetailModal(key);
 }
 
@@ -1215,7 +2191,6 @@ function saveAssetDetail() {
     asset.notes = newNotes;
   }
 
-  // 方案 A：無論欄位是否有變更，點擊「儲存異動」即記錄最後盤點日期並設為已盤點
   asset.checked = true;
   asset.checkedTime = nowStr;
   asset.checkedTimestamp = nowObj.getTime();
@@ -1234,6 +2209,7 @@ function saveAssetDetail() {
   rebuildFilterSets();
   updateStats();
   renderTable();
+  refreshQuickResultsIfActive();
 
   bootstrap.Modal.getInstance(document.getElementById('assetDetailModal')).hide();
 }
@@ -1260,10 +2236,12 @@ function triggerVibration() {
   }
 }
 
-// 行動端相機連續掃描 (已針對 iOS Safari 生命週期最佳化)
+// 頂部導覽列「相機盤點」彈窗模式
 let isScannerStarting = false;
 
-function openScannerModal() {
+async function openScannerModal() {
+  // 若簡易快速查詢的內嵌相機開啟中，先停止內嵌相機避免衝突
+  await stopQuickScanner();
   scanSuccessCount = 0;
   document.getElementById('scanCounterText').innerText = '本次掃描成功: 0 件';
   const fb = document.getElementById('scanFeedback');
@@ -1313,7 +2291,8 @@ async function startScanner() {
     );
   } catch (err) {
     console.error("相機啟動異常:", err);
-    alert("無法啟動相機：請確認透過 HTTPS 安全網址開啟並允許相機權限。\n" + err);
+    alert("無法啟動相機：請確認透過 HTTPS 安全網址開啟並允許相機權限。
+" + err);
   } finally {
     isScannerStarting = false;
   }
@@ -1334,7 +2313,6 @@ async function stopScanner() {
     html5QrCode = null;
   }
 
-  // iOS Safari 關鍵修復：強制銷毀並釋放所有相機硬體 MediaStreamTrack
   const readerEl = document.getElementById("reader");
   if (readerEl) {
     const videos = readerEl.getElementsByTagName("video");
@@ -1369,36 +2347,12 @@ function openDetailModalFromScan(key) {
 }
 
 function onBarcodeScanned(decodedText) {
-  const cleanCode = decodedText.trim();
+  const { cleanCode, found } = findAssetByBarcode(decodedText);
 
   if (cleanCode === lastScannedCode) return;
   lastScannedCode = cleanCode;
   clearTimeout(scanCooldownTimer);
   scanCooldownTimer = setTimeout(() => { lastScannedCode = ''; }, 2500);
-
-  // 比對財產 (加入公務物品 9 開頭前綴容錯與去除星號)
-  const normCode = cleanCode.replace(/^\*+|\*+$/g, '');
-  let found = assetsMap.get(normCode);
-
-  if (!found) {
-    let stripCode = (normCode.length === 8 && normCode.startsWith('9')) ? normCode.substring(1) : normCode;
-    found = assetsMap.get(stripCode);
-
-    if (!found) {
-      for (let item of assetsMap.values()) {
-        if (
-          item.assetNo === normCode ||
-          item.assetNo === stripCode ||
-          item.assetKey === stripCode ||
-          normCode.endsWith(item.assetNo) ||
-          item.oldNo === normCode
-        ) {
-          found = item;
-          break;
-        }
-      }
-    }
-  }
 
   const feedback = document.getElementById('scanFeedback');
   if (found) {
@@ -1418,7 +2372,7 @@ function onBarcodeScanned(decodedText) {
     document.getElementById('scanCounterText').innerText = `本次掃描成功: ${scanSuccessCount} 件`;
 
     feedback.className = "mt-2 p-2 rounded text-start text-white bg-success small";
-    void feedback.offsetWidth; // 強制瀏覽器重繪，確保每次成功皆觸發高亮閃爍 5 次動畫
+    void feedback.offsetWidth;
     feedback.classList.add("animate-flash-5");
     feedback.innerHTML = `
       <div class="fw-bold fs-6"><i class="bi bi-check-circle-fill me-1"></i> [${found.assetNo || found.assetKey}] ${found.name}</div>
@@ -1435,7 +2389,7 @@ function onBarcodeScanned(decodedText) {
   }
 }
 
-// 匯出包含最新狀態的 Excel 清冊 (直接依據目前搜尋、下拉篩選結果與排序匯出)
+// 匯出包含最新狀態的 Excel 清冊
 function exportUpdatedExcel() {
   if (assetsMap.size === 0) {
     alert('目前尚無資料可供匯出。');
@@ -1455,10 +2409,13 @@ function exportUpdatedExcel() {
     if (item.status === 'scrapped') statText = '已報廢';
 
     exportData.push({
-      '財產編號': item.categoryCode ? `${item.categoryCode}\r\n\r\n${item.assetNo}` : item.assetNo,
+      '財產編號': item.categoryCode ? `${item.categoryCode}
+
+${item.assetNo}` : item.assetNo,
       '舊登錄號': item.oldNo,
       '財產名稱': item.name,
-      '形式\n品名': item.spec,
+      '形式
+品名': item.spec,
       '單位': item.unit,
       '數量': item.qty,
       '總價': item.price,
@@ -1466,7 +2423,8 @@ function exportUpdatedExcel() {
       '使用年限': item.lifespan,
       '已使用年限': item.usedYears,
       '存放地點': item.location,
-      '保管人員': item.custodianCode ? `${item.custodianCode}\r\n${item.custodian}` : item.custodian,
+      '保管人員': item.custodianCode ? `${item.custodianCode}
+${item.custodian}` : item.custodian,
       '備註': item.notes,
       '［系統］盤點狀態': item.checked ? '已盤點' : '未盤點',
       '［系統］最後盤點時間': item.checkedTime || '',
@@ -1491,6 +2449,7 @@ function clearAllData() {
     locationsSet.clear();
     custodiansSet.clear();
     selectedKeysSet.clear();
+    currentQuickMatchedKeys = [];
     if (db) {
       const tx = db.transaction('assets', 'readwrite');
       tx.objectStore('assets').clear();
@@ -1500,12 +2459,21 @@ function clearAllData() {
     updateCustodianSelects();
     renderTable();
     updateStats();
+    clearQuickPin();
     alert('資料庫已全數清空。');
   }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   initSystem();
+
+  // 依據螢幕寬度自動切換預設頁籤：手機 (< 768px) 自動進入「簡易快速查詢」(預設顯示鍵盤模式)，電腦自動進入「財產查詢」
+  if (window.innerWidth < 768) {
+    switchMainTab('quick');
+  } else {
+    switchMainTab('full');
+  }
+
   const scannerModalEl = document.getElementById('scannerModal');
   if (scannerModalEl) {
     scannerModalEl.addEventListener('shown.bs.modal', () => {
