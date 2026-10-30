@@ -423,9 +423,6 @@
       <span id="cloudStatusBadge" class="badge bg-warning text-dark ms-2 fw-normal" style="font-size: 0.72rem;">連線中...</span>
     </a>
     <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-sm btn-light fw-bold text-primary" onclick="openScannerModal()">
-        <i class="bi bi-camera-fill me-1"></i>相機盤點
-      </button>
       <button class="btn btn-sm btn-outline-light" onclick="clearAllData()" title="清空重置資料庫">
         <i class="bi bi-trash3"></i>
       </button>
@@ -550,17 +547,10 @@
             <i class="bi bi-lightbulb me-1"></i>補光燈
           </button>
         </div>
-        <div class="fw-bold text-primary font-monospace" style="font-size: 0.95rem;">
-          目前時間：<span id="quickLiveClock">-</span>
-        </div>
-      </div>
+</div>
 
       <!-- 掃描資產編號顯示列 -->
-      <div class="quick-scan-code-bar">
-        <span class="quick-scan-code-label">掃描資產編號:</span>
-        <div class="quick-scan-code-box" id="quickScannedCodeText">-</div>
-      </div>
-    </div>
+</div>
 
     <!-- 查詢 / 掃描結果卡片顯示區 -->
     <div id="quickResultContainer" class="mt-2">
@@ -693,33 +683,7 @@
   </div>
 </div>
 
-<!-- 相機連續盤點 Modal (頂部導覽列「相機盤點」按鈕專用) -->
-<div class="modal fade" id="scannerModal" tabindex="-1" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-dark text-white py-2">
-        <h6 class="modal-title"><i class="bi bi-upc-scan me-2"></i>Code 39 連續快速盤點模式</h6>
-        <button type="button" class="btn-close btn-close-white" onclick="closeScannerModal()"></button>
-      </div>
-      <div class="modal-body p-2 bg-black text-center">
-        <div class="scanner-container">
-          <div id="reader"></div>
-          <div class="scan-aim-box">
-            <div class="scan-aim-line"></div>
-          </div>
-        </div>
-        <div id="scanFeedback" class="mt-2 p-2 rounded text-start text-white bg-dark small" style="min-height: 60px;">
-          請將手機鏡頭水平對準財產標籤上的條碼...
-        </div>
-      </div>
-      <div class="modal-footer py-1 bg-light justify-content-between">
-        <button class="btn btn-sm btn-outline-secondary" onclick="toggleTorch()"><i class="bi bi-lightbulb me-1"></i>補光燈</button>
-        <span class="small text-muted fw-bold" id="scanCounterText">本次掃描成功: 0 件</span>
-        <button type="button" class="btn btn-sm btn-secondary" onclick="closeScannerModal()">完成關閉</button>
-      </div>
-    </div>
-  </div>
-</div>
+
 
 <!-- 設備詳情與異動 Modal -->
 <div class="modal fade" id="assetDetailModal" tabindex="-1">
@@ -854,12 +818,9 @@ let locationsSet = new Set();
 let custodiansSet = new Set();
 let selectedKeysSet = new Set(); // 儲存使用者額外挑選出來的設備 key
 
-// 彈窗掃描器變數
-let html5QrCode = null;
+// 掃描器共用變數 (保留給快速查詢使用)
 let lastScannedCode = '';
 let scanCooldownTimer = null;
-let scanSuccessCount = 0;
-let isTorchOn = false;
 
 // 簡易快速查詢變數
 let currentMainTab = 'full'; // 'quick' | 'full'
@@ -922,10 +883,14 @@ function rebuildFilterSets() {
 // 啟動雲端即時同步與狀態監聽 (含逾1年自動重置為未盤點檢查) - 修復版：解決一直連線中
 async function initSystem() {
   await initIndexedDB();
+
+  // 先嘗試從本機載入，讓畫面不會全空 (silent)
   loadFromIDBFallback(false);
+
   const badge = document.getElementById('cloudStatusBadge');
   let hasConnectedOnce = false;
   let connectTimeout = null;
+
   const startConnectTimeout = () => {
     clearTimeout(connectTimeout);
     connectTimeout = setTimeout(() => {
@@ -938,7 +903,10 @@ async function initSystem() {
       }
     }, 5000);
   };
+
   startConnectTimeout();
+
+  // 監聽連線狀態
   try {
     firebaseDb.ref('.info/connected').on('value', (snap) => {
       if (!badge) return;
@@ -967,6 +935,8 @@ async function initSystem() {
       badge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>連線設定錯誤';
     }
   }
+
+  // 監聽財產資料節點 - 修復版含錯誤回調
   firebaseDb.ref('assets').on('value', (snapshot) => {
     clearTimeout(connectTimeout);
     hasConnectedOnce = true;
@@ -975,10 +945,13 @@ async function initSystem() {
     const expiredBatchUpdates = {};
     const nowMs = Date.now();
     const nowStr = formatDateTime(new Date());
+
     if (data) {
       Object.keys(data).forEach(key => {
         const item = data[key];
         const ts = getRawTimestamp(item);
+
+        // 檢查：若已盤點且距離上次盤點超過 1 年，自動改為未盤點
         if (item.checked && ts > 1 && (nowMs - ts >= ONE_YEAR_MS)) {
           item.checked = false;
           item.autoExpired = true;
@@ -990,16 +963,22 @@ async function initSystem() {
           });
           expiredBatchUpdates[key] = item;
         }
+
         assetsMap.set(key, item);
         saveToIDB(item);
       });
     }
+
+    // 清理已不存在於資料庫的勾選項目
     Array.from(selectedKeysSet).forEach(k => {
       if (!assetsMap.has(k)) selectedKeysSet.delete(k);
     });
+
+    // 若有滿一年自動重置的設備，批次寫回雲端
     if (Object.keys(expiredBatchUpdates).length > 0) {
       firebaseDb.ref('assets').update(expiredBatchUpdates).catch(err=>console.warn('自動重置寫回失敗:', err));
     }
+
     rebuildFilterSets();
     renderTable();
     updateStats();
@@ -1381,8 +1360,7 @@ async function startQuickScanner() {
   if (isQuickScannerStarting) return;
   if (quickHtml5QrCode && quickHtml5QrCode.isScanning) return;
 
-  // 確保彈窗掃描器已關閉，避免鏡頭衝突
-  await stopScanner();
+  // 已移除舊彈窗掃描器，無需關閉
   isQuickScannerStarting = true;
 
   const readerEl = document.getElementById('quickReader');
@@ -2317,159 +2295,6 @@ function triggerVibration() {
   }
 }
 
-// 頂部導覽列「相機盤點」彈窗模式
-let isScannerStarting = false;
-
-async function openScannerModal() {
-  // 若簡易快速查詢的內嵌相機開啟中，先停止內嵌相機避免衝突
-  await stopQuickScanner();
-  scanSuccessCount = 0;
-  document.getElementById('scanCounterText').innerText = '本次掃描成功: 0 件';
-  const fb = document.getElementById('scanFeedback');
-  if (fb) {
-    fb.className = 'mt-2 p-2 rounded text-start text-white bg-dark small';
-    fb.innerText = '請將手機鏡頭水平對準財產標籤上的條碼...';
-  }
-  const modalEl = document.getElementById('scannerModal');
-  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-  modal.show();
-}
-
-function closeScannerModal() {
-  const modalEl = document.getElementById('scannerModal');
-  const modal = bootstrap.Modal.getInstance(modalEl);
-  if (modal) modal.hide();
-}
-
-async function startScanner() {
-  if (isScannerStarting) return;
-  if (html5QrCode && html5QrCode.isScanning) return;
-  isScannerStarting = true;
-
-  const readerEl = document.getElementById("reader");
-  if (readerEl) readerEl.innerHTML = "";
-
-  try {
-    html5QrCode = new Html5Qrcode("reader");
-    const config = {
-      fps: 15,
-      qrbox: (viewfinderWidth, viewfinderHeight) => {
-        const w = Math.max(Math.floor(viewfinderWidth * 0.85), 200);
-        return { width: w, height: 110 };
-      },
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.QR_CODE
-      ]
-    };
-
-    await html5QrCode.start(
-      { facingMode: "environment" },
-      config,
-      onBarcodeScanned,
-      () => {}
-    );
-  } catch (err) {
-    console.error("相機啟動異常:", err);
-    alert("無法啟動相機：請確認透過 HTTPS 安全網址開啟並允許相機權限。\n" + err);
-  } finally {
-    isScannerStarting = false;
-  }
-}
-
-async function stopScanner() {
-  if (html5QrCode) {
-    try {
-      if (html5QrCode.isScanning) {
-        await html5QrCode.stop();
-      }
-    } catch (e) {
-      console.warn("停止掃描器提醒:", e);
-    }
-    try {
-      html5QrCode.clear();
-    } catch (e) {}
-    html5QrCode = null;
-  }
-
-  const readerEl = document.getElementById("reader");
-  if (readerEl) {
-    const videos = readerEl.getElementsByTagName("video");
-    for (let v of videos) {
-      if (v.srcObject) {
-        try {
-          const tracks = v.srcObject.getTracks();
-          tracks.forEach(track => track.stop());
-        } catch (e) {}
-        v.srcObject = null;
-      }
-    }
-    readerEl.innerHTML = "";
-  }
-  isTorchOn = false;
-}
-
-function toggleTorch() {
-  if (html5QrCode && html5QrCode.isScanning) {
-    isTorchOn = !isTorchOn;
-    html5QrCode.applyVideoConstraints({
-      advanced: [{ torch: isTorchOn }]
-    }).catch(() => alert("此裝置或瀏覽器不支援手電筒補光控制"));
-  }
-}
-
-function openDetailModalFromScan(key) {
-  closeScannerModal();
-  setTimeout(() => {
-    openDetailModal(key);
-  }, 350);
-}
-
-function onBarcodeScanned(decodedText) {
-  const { cleanCode, found } = findAssetByBarcode(decodedText);
-
-  if (cleanCode === lastScannedCode) return;
-  lastScannedCode = cleanCode;
-  clearTimeout(scanCooldownTimer);
-  scanCooldownTimer = setTimeout(() => { lastScannedCode = ''; }, 2500);
-
-  const feedback = document.getElementById('scanFeedback');
-  if (found) {
-    playBeep(987, 0.15);
-    triggerVibration();
-    
-    const now = new Date();
-    found.checked = true;
-    found.checkedTime = formatDateTime(now);
-    found.checkedTimestamp = now.getTime();
-    found.autoExpired = false;
-    if (!found.history) found.history = [];
-    found.history.push({ time: found.checkedTime, action: '相機掃碼盤點', note: '現場確認在用正常' });
-    saveAsset(found);
-    
-    scanSuccessCount++;
-    document.getElementById('scanCounterText').innerText = `本次掃描成功: ${scanSuccessCount} 件`;
-
-    feedback.className = "mt-2 p-2 rounded text-start text-white bg-success small";
-    void feedback.offsetWidth;
-    feedback.classList.add("animate-flash-5");
-    feedback.innerHTML = `
-      <div class="fw-bold fs-6"><i class="bi bi-check-circle-fill me-1"></i> [${found.assetNo || found.assetKey}] ${found.name}</div>
-      <div>地點: <strong>${found.location}</strong> | 保管人: <strong>${found.custodian}</strong></div>
-      <div class="mt-1 d-flex justify-content-end">
-        <button class="btn btn-sm btn-light py-0 px-2 fw-bold" onclick="openDetailModalFromScan('${found.assetKey}')">異動此設備</button>
-      </div>
-    `;
-    updateStats();
-  } else {
-    playBeep(320, 0.25);
-    feedback.className = "mt-2 p-2 rounded text-start text-white bg-danger small";
-    feedback.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> 條碼 [${cleanCode}] 查無對應設備！請確認是否已匯入清冊。`;
-  }
-}
-
-// 匯出包含最新狀態的 Excel 清冊
 function exportUpdatedExcel() {
   if (assetsMap.size === 0) {
     alert('目前尚無資料可供匯出。');
