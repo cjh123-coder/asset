@@ -1345,8 +1345,7 @@ async function startQuickScanner() {
       btnStopResume.innerText = '啟動掃描';
       btnStopResume.className = 'btn btn-success fw-bold px-3';
     }
-    alert('無法啟動相機：請確認透過 HTTPS 安全網址開啟並允許相機權限。
-' + err);
+    alert('無法啟動相機：請確認透過 HTTPS 安全網址開啟並允許相機權限。\n' + err);
   } finally {
     isQuickScannerStarting = false;
   }
@@ -2409,13 +2408,14 @@ function exportUpdatedExcel() {
     if (item.status === 'scrapped') statText = '已報廢';
 
     exportData.push({
-      '財產編號': item.categoryCode ? `${item.categoryCode}
+      '財產編號': item.categoryCode ? `${item.categoryCode}\r\n\r\n${item.assetNo}` : item.assetNo,
 
 ${item.assetNo}` : item.assetNo,
       '舊登錄號': item.oldNo,
       '財產名稱': item.name,
-      '形式
-品名': item.spec,
+      '形式/品名': item.spec,
+       // 或使用正規跳脫字元：
+      '形式\n品名': item.spec,
       '單位': item.unit,
       '數量': item.qty,
       '總價': item.price,
@@ -2423,7 +2423,7 @@ ${item.assetNo}` : item.assetNo,
       '使用年限': item.lifespan,
       '已使用年限': item.usedYears,
       '存放地點': item.location,
-      '保管人員': item.custodianCode ? `${item.custodianCode}
+      '保管人員': item.custodianCode ? `${item.custodianCode}\r\n${item.custodian}` : item.custodian,
 ${item.custodian}` : item.custodian,
       '備註': item.notes,
       '［系統］盤點狀態': item.checked ? '已盤點' : '未盤點',
