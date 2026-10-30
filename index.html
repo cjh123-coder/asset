@@ -473,12 +473,9 @@
     <!-- 子模式 A：🔢 鍵盤後 4 碼輸入區 (預設顯示) -->
     <div id="quickKeypadSection" class="card border-0 shadow-sm mb-3">
       <div class="card-body p-3 text-center">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-          <span class="small fw-bold text-secondary"><i class="bi bi-123 me-1"></i>輸入財產編號後 4 碼</span>
-          <span class="small text-muted" id="pinInputHint">輸入滿 4 碼自動查詢</span>
-        </div>
 
         <!-- 4 碼數字格顯示器 (避免跳出手機原生輸入法) -->
+        <span id="pinInputHint" style="display:none;">輸入滿 4 碼自動查詢</span>
         <div class="pin-display-container" onclick="focusPinDisplay()">
           <div class="pin-digit-box active-slot" id="pinSlot0"></div>
           <div class="pin-digit-box" id="pinSlot1"></div>
@@ -1245,17 +1242,17 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
   if (isKeypadMode && actionBar) {
     const firstItem = items[0];
     const actionCheckBtn = firstItem.checked
-      ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-2" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
+      ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
            <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
          </button>`
-      : `<button type="button" class="btn btn-success fw-bold flex-fill py-2 shadow-sm" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
+      : `<button type="button" class="btn btn-success fw-bold flex-fill py-4 shadow-sm" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
            <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
          </button>`;
     
     actionBar.innerHTML = `
       <div class="d-flex gap-2">
         ${actionCheckBtn}
-        <button type="button" class="btn btn-primary fw-bold flex-fill py-2" onclick="openDetailModal('${firstItem.assetKey}')">
+        <button type="button" class="btn btn-primary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="openDetailModal('${firstItem.assetKey}')">
           <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
         </button>
       </div>
@@ -1289,16 +1286,16 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
       if (idx !== 0) {
         // 第2筆以後的卡片仍保留按鈕在底部，方便操作多筆結果
         const actionCheckBtnInner = item.checked
-          ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-2" onclick="quickToggleAssetChecked('${item.assetKey}')">
+          ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
                <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
              </button>`
-          : `<button type="button" class="btn btn-success fw-bold flex-fill py-2 shadow-sm" onclick="quickToggleAssetChecked('${item.assetKey}')">
+          : `<button type="button" class="btn btn-success fw-bold flex-fill py-4 shadow-sm" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
                <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
              </button>`;
         bottomActionsHtml = `
         <div class="d-flex gap-2 mt-2 pt-2 border-top">
           ${actionCheckBtnInner}
-          <button type="button" class="btn btn-primary fw-bold flex-fill py-2" onclick="openDetailModal('${item.assetKey}')">
+          <button type="button" class="btn btn-primary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="openDetailModal('${item.assetKey}')">
             <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
           </button>
         </div>`;
@@ -1307,16 +1304,16 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
     } else {
       // 相機模式維持原本底部按鈕
       const actionCheckBtnCam = item.checked
-        ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-2" onclick="quickToggleAssetChecked('${item.assetKey}')">
+        ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
              <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
            </button>`
-        : `<button type="button" class="btn btn-success fw-bold flex-fill py-2 shadow-sm" onclick="quickToggleAssetChecked('${item.assetKey}')">
+        : `<button type="button" class="btn btn-success fw-bold flex-fill py-4 shadow-sm" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
              <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
            </button>`;
       bottomActionsHtml = `
         <div class="d-flex gap-2 mt-2 pt-2 border-top">
           ${actionCheckBtnCam}
-          <button type="button" class="btn btn-primary fw-bold flex-fill py-2" onclick="openDetailModal('${item.assetKey}')">
+          <button type="button" class="btn btn-primary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="openDetailModal('${item.assetKey}')">
             <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
           </button>
         </div>`;
