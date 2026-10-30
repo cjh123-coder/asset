@@ -505,6 +505,9 @@
             <i class="bi bi-backspace-fill me-1"></i>退格
           </button>
         </div>
+
+        <!-- 管理員快捷操作列：查詢到結果時，操作按鈕移至鍵盤下方，避免滑到底部 -->
+        <div id="quickKeypadActionBar" class="mt-3" style="display:none;"></div>
       </div>
     </div>
 
@@ -1140,6 +1143,9 @@ function backspaceQuickPin() {
 function clearQuickPin() {
   quickPin = '';
   currentQuickMatchedKeys = [];
+  const actionBar = document.getElementById('quickKeypadActionBar');
+  if (actionBar) { actionBar.style.display = 'none'; actionBar.innerHTML = ''; }
+
   updateQuickPinUI();
   const container = document.getElementById('quickResultContainer');
   if (container) {
@@ -1199,6 +1205,8 @@ function executeQuickPinSearch(pin4) {
     renderQuickResultCards(matches, `末 4 碼 [${pin4}] 查詢結果`, false);
   } else {
     playBeep(320, 0.2);
+    const actionBar = document.getElementById('quickKeypadActionBar');
+    if (actionBar) { actionBar.style.display = 'none'; actionBar.innerHTML = ''; }
     const container = document.getElementById('quickResultContainer');
     container.innerHTML = `
       <div class="alert alert-danger d-flex align-items-center shadow-sm mb-0" role="alert">
@@ -1212,13 +1220,15 @@ function executeQuickPinSearch(pin4) {
   }
 }
 
-// 渲染簡易快速查詢的結果卡片
+// 渲染簡易快速查詢的結果卡片 - 優化版：鍵盤模式按鈕移至鍵盤下方
 function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighlight = false) {
   const container = document.getElementById('quickResultContainer');
+  const actionBar = document.getElementById('quickKeypadActionBar');
   if (!container) return;
 
   if (!items || items.length === 0) {
     container.innerHTML = '';
+    if (actionBar) { actionBar.style.display = 'none'; actionBar.innerHTML = ''; }
     return;
   }
 
@@ -1230,7 +1240,33 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
     </div>
   `;
 
-  items.forEach(item => {
+  // 鍵盤模式：將操作按鈕移到鍵盤下方快捷列
+  const isKeypadMode = lastQuickResultSource === 'keypad';
+  if (isKeypadMode && actionBar) {
+    const firstItem = items[0];
+    const actionCheckBtn = firstItem.checked
+      ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-2" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
+           <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
+         </button>`
+      : `<button type="button" class="btn btn-success fw-bold flex-fill py-2 shadow-sm" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
+           <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
+         </button>`;
+    
+    actionBar.innerHTML = `
+      <div class="d-flex gap-2">
+        ${actionCheckBtn}
+        <button type="button" class="btn btn-primary fw-bold flex-fill py-2" onclick="openDetailModal('${firstItem.assetKey}')">
+          <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
+        </button>
+      </div>
+      ${items.length > 1 ? `<div class="small text-muted mt-2 text-center">已顯示第1筆快捷操作，其他 ${items.length - 1} 筆請在下方卡片操作</div>` : ''}
+    `;
+    actionBar.style.display = 'block';
+  } else {
+    if (actionBar) { actionBar.style.display = 'none'; actionBar.innerHTML = ''; }
+  }
+
+  items.forEach((item, idx) => {
     let statusBadge = '<span class="badge badge-status-in_use">正常在用</span>';
     if (item.status === 'pending_scrap') statusBadge = '<span class="badge badge-status-pending_scrap">擬報廢</span>';
     if (item.status === 'scrapped') statusBadge = '<span class="badge badge-status-scrapped">已報廢</span>';
@@ -1247,13 +1283,44 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
       checkStatusBadge = `<span class="badge bg-secondary fs-6"><i class="bi bi-circle me-1"></i>未盤點</span>`;
     }
 
-    const actionCheckBtn = item.checked
-      ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-2" onclick="quickToggleAssetChecked('${item.assetKey}')">
-           <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
-         </button>`
-      : `<button type="button" class="btn btn-success fw-bold flex-fill py-2 shadow-sm" onclick="quickToggleAssetChecked('${item.assetKey}')">
-           <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
-         </button>`;
+    // 鍵盤模式且為第1筆時，卡片底部不再顯示按鈕（已移到鍵盤下方）
+    let bottomActionsHtml = '';
+    if (isKeypadMode) {
+      if (idx !== 0) {
+        // 第2筆以後的卡片仍保留按鈕在底部，方便操作多筆結果
+        const actionCheckBtnInner = item.checked
+          ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-2" onclick="quickToggleAssetChecked('${item.assetKey}')">
+               <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
+             </button>`
+          : `<button type="button" class="btn btn-success fw-bold flex-fill py-2 shadow-sm" onclick="quickToggleAssetChecked('${item.assetKey}')">
+               <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
+             </button>`;
+        bottomActionsHtml = `
+        <div class="d-flex gap-2 mt-2 pt-2 border-top">
+          ${actionCheckBtnInner}
+          <button type="button" class="btn btn-primary fw-bold flex-fill py-2" onclick="openDetailModal('${item.assetKey}')">
+            <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
+          </button>
+        </div>`;
+      }
+      // idx===0 時 bottomActionsHtml 保持空白
+    } else {
+      // 相機模式維持原本底部按鈕
+      const actionCheckBtnCam = item.checked
+        ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-2" onclick="quickToggleAssetChecked('${item.assetKey}')">
+             <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
+           </button>`
+        : `<button type="button" class="btn btn-success fw-bold flex-fill py-2 shadow-sm" onclick="quickToggleAssetChecked('${item.assetKey}')">
+             <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
+           </button>`;
+      bottomActionsHtml = `
+        <div class="d-flex gap-2 mt-2 pt-2 border-top">
+          ${actionCheckBtnCam}
+          <button type="button" class="btn btn-primary fw-bold flex-fill py-2" onclick="openDetailModal('${item.assetKey}')">
+            <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
+          </button>
+        </div>`;
+    }
 
     html += `
       <div class="quick-asset-card p-3 mb-3 ${item.checked ? 'is-checked' : ''} ${flashHighlight ? 'animate-card-flash-5' : ''}">
@@ -1300,18 +1367,14 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
         ${item.notes ? `<div class="p-2 bg-info-subtle text-info-emphasis rounded small mb-2"><i class="bi bi-sticky-fill me-1"></i>備註：${item.notes}</div>` : ''}
         ${item.scrapReason ? `<div class="p-2 bg-danger-subtle text-danger-emphasis rounded small mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>報廢原因：${item.scrapReason}</div>` : ''}
 
-        <div class="d-flex gap-2 mt-2 pt-2 border-top">
-          ${actionCheckBtn}
-          <button type="button" class="btn btn-primary fw-bold flex-fill py-2" onclick="openDetailModal('${item.assetKey}')">
-            <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
-          </button>
-        </div>
+        ${bottomActionsHtml}
       </div>
     `;
   });
 
   container.innerHTML = html;
 }
+
 
 // 在簡易快速查詢卡片中點擊切換「已盤點 / 取消盤點」
 function quickToggleAssetChecked(key) {
