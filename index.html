@@ -1,6 +1,27 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-<head>
+<head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>學校公務財產與物品智慧管理系統</title>
@@ -404,7 +425,73 @@
       height: 1.15rem;
       cursor: pointer;
     }
-  </style>
+  
+    /* 照片縮圖牆與燈箱樣式 */
+    .photo-gallery-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 6px 2px;
+      scrollbar-width: thin;
+    }
+    .photo-thumb-wrapper {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #dee2e6;
+      background: #f8f9fa;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .photo-thumb-wrapper:hover {
+      transform: scale(1.04);
+      border-color: #0d6efd;
+    }
+    .photo-thumb-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .photo-status-dot {
+      position: absolute;
+      bottom: 3px;
+      right: 3px;
+      font-size: 0.65rem;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-weight: 700;
+      line-height: 1.1;
+      pointer-events: none;
+    }
+    .photo-del-mini-btn {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(220, 53, 69, 0.9);
+      color: #fff;
+      border: none;
+      font-size: 0.72rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      z-index: 5;
+    }
+    .table-mini-thumb {
+      width: 34px;
+      height: 34px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid #ced4da;
+      cursor: pointer;
+    }
+</style>
 
   <!-- 第三方套件：SheetJS、html5-qrcode、Firebase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -423,10 +510,17 @@
       <span id="cloudStatusBadge" class="badge bg-warning text-dark ms-2 fw-normal" style="font-size: 0.72rem;">連線中...</span>
     </a>
     <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-light fw-bold text-primary position-relative" onclick="openCloudPhotoSettingsModal()" title="照片雲端設定与待上傳佇列">
+        <i class="bi bi-cloud-arrow-up-fill me-1"></i><span>照片雲端</span>
+        <span id="navPhotoQueueBadge" class="badge rounded-pill bg-danger ms-1" style="display:none;">0</span>
+      </button>
       <button class="btn btn-sm btn-outline-light" onclick="clearAllData()" title="清空重置資料庫">
         <i class="bi bi-trash3"></i>
       </button>
     </div>
+    <!-- 全域隱藏高畫質拍照與選圖 Input -->
+    <input type="file" id="globalCameraInput" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotoFilesSelected(event)">
+    <input type="file" id="globalGalleryInput" accept="image/*" multiple style="display:none" onchange="handlePhotoFilesSelected(event)">
   </div>
 </nav>
 
@@ -587,6 +681,9 @@
           <button type="button" class="btn btn-outline-secondary" id="btnBatchUncheck" onclick="batchSetChecked(false)" title="若有勾選則取消勾選項目盤點；未勾選則一鍵取消目前篩選結果盤點">
             <i class="bi bi-x-circle me-1"></i><span id="btnBatchUncheckText">批次取消盤點</span>
           </button>
+          <button type="button" class="btn btn-warning fw-semibold text-dark" id="btnBatchEdit" onclick="openBatchEditModal()" title="批次移轉存放地點、保管人員或批次設定報廢狀態">
+            <i class="bi bi-arrow-left-right me-1"></i><span id="btnBatchEditText">🔄 批次異動</span>
+          </button>
         </div>
         <div class="vr d-none d-sm-block mx-1"></div>
         <button class="btn btn-sm btn-outline-success" onclick="document.getElementById('excelFileInput').click()">
@@ -739,6 +836,28 @@
           </div>
 
           <div class="col-12">
+            <div class="border rounded-3 p-3 bg-white">
+              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <div>
+                  <span class="fw-bold text-primary"><i class="bi bi-camera-fill me-1"></i>📸 現場拍照存證 (高畫質多張 / 離線暫存自動同步雲端硬碟)</span>
+                  <span class="badge bg-secondary ms-1" id="detailPhotoCountBadge">0 張</span>
+                </div>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-sm btn-primary fw-bold" onclick="triggerAssetPhotoCapture(document.getElementById('editAssetKey').value, 'camera')">
+                    <i class="bi bi-camera me-1"></i>📷 拍照
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="triggerAssetPhotoCapture(document.getElementById('editAssetKey').value, 'gallery')">
+                    <i class="bi bi-images me-1"></i>相簿多選
+                  </button>
+                </div>
+              </div>
+              <div id="detailPhotoGallery" class="photo-gallery-strip">
+                <div class="text-muted small py-2">尚無存證照片，點擊右上角「📷 拍照」或「相簿多選」即可新增設備現況或放置位置照片。</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
             <div class="p-2 bg-light rounded small text-muted d-flex flex-wrap gap-3 align-items-center">
               <span>購置日期：<strong id="viewPurchaseDate">-</strong></span>
               <span>使用年限：<strong id="viewLifespan">-</strong> 年</span>
@@ -770,6 +889,203 @@
           <button type="button" class="btn btn-secondary me-1" data-bs-dismiss="modal">取消</button>
           <button type="button" class="btn btn-primary" onclick="saveAssetDetail()">儲存異動</button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 📦 批次異動（地點／保管人／報廢狀態）Modal -->
+<div class="modal fade" id="batchEditModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning-subtle">
+        <h5 class="modal-title fw-bold text-dark"><i class="bi bi-arrow-left-right me-2"></i>📦 批次異動（移轉地點／保管人／報廢）</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info py-2 small mb-3">
+          <i class="bi bi-info-circle-fill me-1"></i>目標範圍：<strong id="batchEditScopeText">目前挑選的設備</strong>（留空的欄位將維持各設備原有資料不變）
+        </div>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-bold mb-1 text-primary">批次移轉存放地點</label>
+            <input type="text" id="batchEditLocation" class="form-control" list="locationOptions" placeholder="留空代表不變更原存放地點...">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-bold mb-1 text-primary">批次移轉保管人員</label>
+            <input type="text" id="batchEditCustodian" class="form-control" list="custodianOptions" placeholder="留空代表不變更原保管人員...">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-bold mb-1 text-primary">批次變更設備狀態（批次報廢）</label>
+            <select id="batchEditStatus" class="form-select" onchange="handleBatchStatusChange()">
+              <option value="">— 不變更設備狀態 —</option>
+              <option value="in_use">正常在用</option>
+              <option value="pending_scrap">擬報廢 (達年限/故障待除帳)</option>
+              <option value="scrapped">已報廢 (完成除帳)</option>
+            </select>
+          </div>
+          <div class="col-12" id="batchScrapReasonBox" style="display:none;">
+            <label class="form-label text-danger fw-bold mb-1">批次報廢原因註記</label>
+            <input type="text" id="batchEditScrapReason" class="form-control" placeholder="例：逾使用年限且不堪使用，整批汰換報廢">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-bold mb-1">批次備註更新方式</label>
+            <div class="input-group mb-1">
+              <select id="batchEditNoteMode" class="form-select" style="max-width: 150px;">
+                <option value="append">附加於原備註後</option>
+                <option value="overwrite">直接覆蓋原備註</option>
+              </select>
+              <input type="text" id="batchEditNotes" class="form-control" placeholder="留空代表不變更備註...">
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch mt-1">
+              <input class="form-check-input" type="checkbox" id="batchEditMarkChecked" checked>
+              <label class="form-check-label fw-semibold text-success" for="batchEditMarkChecked">同步將這批設備標記為「已盤點」並更新最後盤點時間</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary fw-bold" onclick="executeBatchEdit()">
+          <i class="bi bi-check2-all me-1"></i>確認執行批次異動
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ☁️ 照片雲端硬碟設定與待上傳佇列 Modal -->
+<div class="modal fade" id="cloudPhotoSettingsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="bi bi-cloud-arrow-up-fill me-2"></i>☁️ Google 雲端硬碟照片自動同步設定與待上傳佇列</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="p-3 bg-light rounded-3 border mb-3">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <div>
+              <span class="fw-bold text-dark"><i class="bi bi-folder-symlink-fill text-warning me-1"></i>指定 Google 雲端硬碟資料夾 ID：</span>
+              <code class="fw-bold text-primary">1H9w8hjb-6SdBBsN1xGN1LEWPT0bnsZT6</code>
+            </div>
+            <a href="https://drive.google.com/drive/folders/1H9w8hjb-6SdBBsN1xGN1LEWPT0bnsZT6" target="_blank" class="btn btn-sm btn-outline-primary fw-semibold">
+              <i class="bi bi-box-arrow-up-right me-1"></i>開啟雲端硬碟資料夾
+            </a>
+          </div>
+          <label class="form-label fw-bold small mb-1">Google Apps Script (GAS) 網頁應用程式上傳網址 (Web App URL)</label>
+          <div class="input-group">
+            <input type="url" id="gasUploadUrlInput" class="form-control font-monospace small" placeholder="https://script.google.com/macros/s/....../exec">
+            <button class="btn btn-primary fw-bold" type="button" onclick="saveGasUploadUrl()">
+              <i class="bi bi-floppy me-1"></i>儲存並全校同步
+            </button>
+          </div>
+          <div class="form-text mt-1">
+            <i class="bi bi-check-circle text-success me-1"></i>此網址儲存後會自動寫入 Firebase <code>config/gasUploadUrl</code>，<strong>全校只需設定一次，所有手機與電腦皆自動套用</strong>！離線拍照會先存於手機本機，網路恢復時自動排程上傳至 Google 雲端硬碟。
+          </div>
+        </div>
+
+        <!-- 待上傳佇列狀態區 -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0"><i class="bi bi-hourglass-split me-1 text-warning"></i>本機待上傳照片佇列 (<span id="modalQueueCount">0</span> 張)</h6>
+          <button type="button" class="btn btn-sm btn-success fw-bold" id="btnForceSyncQueue" onclick="processPhotoSyncQueue(true)">
+            <i class="bi bi-arrow-repeat me-1"></i>立即手動上傳佇列
+          </button>
+        </div>
+        <div id="photoQueueListContainer" class="border rounded-3 p-2 bg-white mb-3" style="max-height: 220px; overflow-y: auto;">
+          <div class="text-center text-muted small py-3">目前無待上傳照片，所有本機照片皆已同步！</div>
+        </div>
+
+        <!-- GAS 腳本複製區 -->
+        <div class="accordion" id="gasGuideAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed py-2 fw-bold small bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#gasScriptCollapse">
+                <i class="bi bi-code-slash me-2 text-primary"></i>查看 Google Apps Script (GAS) 雲端硬碟接收腳本與 3 步驟部署說明（支援自動上傳與雙向同步刪除）
+              </button>
+            </h2>
+            <div id="gasScriptCollapse" class="accordion-collapse collapse" data-bs-parent="#gasGuideAccordion">
+              <div class="accordion-body small">
+                <ol class="mb-2 ps-3">
+                  <li>前往 <a href="https://script.google.com/" target="_blank">Google Apps Script</a> 點擊「<strong>新專案</strong>」。</li>
+                  <li>將下方程式碼完整貼上取代預設內容（已內建您的資料夾 ID <code>1H9w8hjb-6SdBBsN1xGN1LEWPT0bnsZT6</code> 與雙向刪除機制）。</li>
+                  <li>點擊右上角「<strong>部署</strong>」➔「<strong>新增部署作業</strong>」➔ 類型選「<strong>網頁應用程式</strong>」➔ 執行身分選「<strong>我</strong>」➔ 誰可以存取選「<strong>所有人</strong>」➔ 點擊部署並複製產生的網址貼回上方即可！</li>
+                </ol>
+                <pre class="bg-dark text-light p-2 rounded font-monospace" style="font-size: 0.75rem; max-height: 220px; overflow-y: auto;">const FOLDER_ID = '1H9w8hjb-6SdBBsN1xGN1LEWPT0bnsZT6';
+
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const folder = DriveApp.getFolderById(payload.folderId || FOLDER_ID);
+
+    // 方案 A：雙向同步刪除雲端硬碟照片
+    if (payload.action === 'delete' &amp;&amp; payload.driveFileId) {
+      try {
+        DriveApp.getFileById(payload.driveFileId).setTrashed(true);
+      } catch (delErr) {}
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', deleted: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 接收高畫質 Base64 照片並寫入指定 Google Drive 資料夾
+    const base64Data = payload.dataUrl.split(',')[1];
+    const contentType = payload.mimeType || 'image/jpeg';
+    const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), contentType, payload.fileName || ('asset_' + Date.now() + '.jpg'));
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const fileId = file.getId();
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'ok',
+      driveFileId: fileId,
+      driveUrl: 'https://drive.google.com/uc?export=view&amp;id=' + fileId,
+      viewUrl: 'https://drive.google.com/file/d/' + fileId + '/view',
+      thumbUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&amp;sz=w1600'
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 🖼️ 設備高畫質照片檢視與管理燈箱 Modal -->
+<div class="modal fade" id="photoLightboxModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark text-white border-0">
+      <div class="modal-header border-secondary py-2">
+        <h6 class="modal-title fw-bold" id="lightboxTitle">設備存證照片檢視</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center p-2" style="background: #111;">
+        <img id="lightboxMainImg" src="" alt="設備照片" class="img-fluid rounded" style="max-height: 68vh; object-fit: contain;">
+        <div class="mt-2 d-flex flex-wrap justify-content-between align-items-center px-2 gap-2">
+          <div class="text-start small">
+            <span id="lightboxStatusBadge" class="badge bg-success me-1">已同步</span>
+            <span id="lightboxMetaText" class="text-light font-monospace"></span>
+          </div>
+          <div class="d-flex gap-2">
+            <a id="lightboxDriveLink" href="#" target="_blank" class="btn btn-sm btn-outline-info" style="display:none;">
+              <i class="bi bi-google me-1"></i>雲端硬碟原檔
+            </a>
+            <button type="button" class="btn btn-sm btn-danger fw-bold" id="lightboxDeleteBtn">
+              <i class="bi bi-trash3 me-1"></i>刪除此張照片 (雙向同步移除)
+            </button>
+          </div>
+        </div>
+        <div id="lightboxThumbsStrip" class="photo-gallery-strip justify-content-center mt-2 pt-2 border-top border-secondary"></div>
       </div>
     </div>
   </div>
@@ -834,14 +1150,24 @@ let isQuickTorchOn = false;
 let quickScanSuccessCount = 0;
 let quickClockTimer = null;
 
-// 初始化本機 IndexedDB 快取
+// Google Drive 雲端硬碟專屬設定與離線照片佇列變數
+const GOOGLE_DRIVE_FOLDER_ID = '1H9w8hjb-6SdBBsN1xGN1LEWPT0bnsZT6';
+let gasUploadUrl = localStorage.getItem('gas_upload_url') || '';
+let photoQueueMap = new Map(); // photoId -> { photoId, assetKey, assetNo, assetName, dataUrl, thumbDataUrl, createdAt, status, lastError }
+let currentPhotoCaptureAssetKey = '';
+let isSyncingPhotos = false;
+
+// 初始化本機 IndexedDB 快取 (升級至 v2，新增 photoQueue 儲存體支援高畫質照片離線暫存)
 function initIndexedDB() {
   return new Promise((resolve) => {
-    const request = indexedDB.open('SchoolAssetDB_Direct', 1);
+    const request = indexedDB.open('SchoolAssetDB_Direct', 2);
     request.onupgradeneeded = (e) => {
       const idb = e.target.result;
       if (!idb.objectStoreNames.contains('assets')) {
         idb.createObjectStore('assets', { keyPath: 'assetKey' });
+      }
+      if (!idb.objectStoreNames.contains('photoQueue')) {
+        idb.createObjectStore('photoQueue', { keyPath: 'photoId' });
       }
     };
     request.onsuccess = (e) => {
@@ -849,6 +1175,42 @@ function initIndexedDB() {
       resolve(db);
     };
     request.onerror = () => resolve(null);
+  });
+}
+
+function savePhotoQueueToIDB(item) {
+  if (!db) return;
+  try {
+    const tx = db.transaction('photoQueue', 'readwrite');
+    tx.objectStore('photoQueue').put(item);
+  } catch (e) {}
+}
+
+function deletePhotoQueueFromIDB(photoId) {
+  if (!db) return;
+  try {
+    const tx = db.transaction('photoQueue', 'readwrite');
+    tx.objectStore('photoQueue').delete(photoId);
+  } catch (e) {}
+}
+
+function loadPhotoQueueFromIDB() {
+  return new Promise((resolve) => {
+    if (!db) return resolve([]);
+    try {
+      const tx = db.transaction('photoQueue', 'readonly');
+      const req = tx.objectStore('photoQueue').getAll();
+      req.onsuccess = () => {
+        const list = req.result || [];
+        photoQueueMap.clear();
+        list.forEach(p => photoQueueMap.set(p.photoId, p));
+        updatePhotoQueueBadges();
+        resolve(list);
+      };
+      req.onerror = () => resolve([]);
+    } catch (e) {
+      resolve([]);
+    }
   });
 }
 
@@ -883,9 +1245,27 @@ function rebuildFilterSets() {
 // 啟動雲端即時同步與狀態監聽 (含逾1年自動重置為未盤點檢查) - 修復版：解決一直連線中
 async function initSystem() {
   await initIndexedDB();
+  await loadPhotoQueueFromIDB();
 
   // 先嘗試從本機載入，讓畫面不會全空 (silent)
   loadFromIDBFallback(false);
+
+  // 監聽全校共用之 Google Apps Script 雲端硬碟上傳網址設定
+  try {
+    firebaseDb.ref('config/gasUploadUrl').on('value', (snap) => {
+      const remoteUrl = snap.val();
+      if (remoteUrl && typeof remoteUrl === 'string') {
+        gasUploadUrl = remoteUrl.trim();
+        localStorage.setItem('gas_upload_url', gasUploadUrl);
+        const inp = document.getElementById('gasUploadUrlInput');
+        if (inp) inp.value = gasUploadUrl;
+        // 若本機有待上傳照片且已取得上傳網址，自動觸發背景上傳
+        if (photoQueueMap.size > 0 && navigator.onLine) {
+          processPhotoSyncQueue(false);
+        }
+      }
+    });
+  } catch (e) {}
 
   const badge = document.getElementById('cloudStatusBadge');
   let hasConnectedOnce = false;
@@ -916,6 +1296,9 @@ async function initSystem() {
         badge.className = 'badge bg-success text-white ms-2 fw-normal';
         badge.style.fontSize = '0.72rem';
         badge.innerHTML = '<i class="bi bi-cloud-check-fill me-1"></i>雲端已同步';
+        if (photoQueueMap.size > 0) {
+          processPhotoSyncQueue(false);
+        }
       } else {
         if (hasConnectedOnce) {
           badge.className = 'badge bg-warning text-dark ms-2 fw-normal';
@@ -1237,25 +1620,34 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
     </div>
   `;
 
-  // 鍵盤模式：將操作按鈕移到鍵盤下方快捷列
+  // 鍵盤模式：將操作按鈕移到鍵盤下方快捷列 (含單手拍照捷徑與即時照片縮圖牆)
   const isKeypadMode = lastQuickResultSource === 'keypad';
   if (isKeypadMode && actionBar) {
     const firstItem = items[0];
+    const firstPhotos = Array.isArray(firstItem.photos) ? firstItem.photos : [];
     const actionCheckBtn = firstItem.checked
-      ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
-           <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
+      ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-3" style="min-height:3.5rem;font-size:1.05rem;" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
+           <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (取消)
          </button>`
-      : `<button type="button" class="btn btn-success fw-bold flex-fill py-4 shadow-sm" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
+      : `<button type="button" class="btn btn-success fw-bold flex-fill py-3 shadow-sm" style="min-height:3.5rem;font-size:1.05rem;" onclick="quickToggleAssetChecked('${firstItem.assetKey}')">
            <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
          </button>`;
+
+    const quickThumbsHtml = firstPhotos.length > 0
+      ? `<div class="photo-gallery-strip mt-2 pt-1 border-top justify-content-center">${buildAssetPhotosHtml(firstItem.assetKey, firstPhotos, true)}</div>`
+      : '';
     
     actionBar.innerHTML = `
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 flex-wrap">
         ${actionCheckBtn}
-        <button type="button" class="btn btn-primary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="openDetailModal('${firstItem.assetKey}')">
-          <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
+        <button type="button" class="btn btn-warning fw-bold text-dark flex-fill py-3 shadow-sm" style="min-height:3.5rem;font-size:1.05rem;" onclick="triggerAssetPhotoCapture('${firstItem.assetKey}', 'camera')">
+          <i class="bi bi-camera-fill me-1"></i>📷 拍照 (${firstPhotos.length})
+        </button>
+        <button type="button" class="btn btn-primary fw-bold flex-fill py-3" style="min-height:3.5rem;font-size:1.05rem;" onclick="openDetailModal('${firstItem.assetKey}')">
+          <i class="bi bi-pencil-square me-1"></i>✏️ 異動
         </button>
       </div>
+      ${quickThumbsHtml}
       ${items.length > 1 ? `<div class="small text-muted mt-2 text-center">已顯示第1筆快捷操作，其他 ${items.length - 1} 筆請在下方卡片操作</div>` : ''}
     `;
     actionBar.style.display = 'block';
@@ -1280,41 +1672,65 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
       checkStatusBadge = `<span class="badge bg-secondary fs-6"><i class="bi bi-circle me-1"></i>未盤點</span>`;
     }
 
-    // 鍵盤模式且為第1筆時，卡片底部不再顯示按鈕（已移到鍵盤下方）
+    const itemPhotos = Array.isArray(item.photos) ? item.photos : [];
+    const cardPhotosStripHtml = `
+      <div class="mt-2 pt-2 border-top">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="small fw-bold text-secondary"><i class="bi bi-images me-1 text-primary"></i>現場存證照片 (${itemPhotos.length} 張)</span>
+          <div class="d-flex gap-1">
+            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold" onclick="triggerAssetPhotoCapture('${item.assetKey}', 'camera')">
+              <i class="bi bi-camera-fill me-1"></i>拍照
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="triggerAssetPhotoCapture('${item.assetKey}', 'gallery')">
+              <i class="bi bi-folder2-open"></i>
+            </button>
+          </div>
+        </div>
+        ${itemPhotos.length > 0
+          ? `<div class="photo-gallery-strip">${buildAssetPhotosHtml(item.assetKey, itemPhotos, true)}</div>`
+          : `<div class="small text-muted">尚無照片，點擊右側「拍照」可立即拍攝存證</div>`
+        }
+      </div>
+    `;
+
+    // 鍵盤模式且為第1筆時，卡片底部不再重複顯示大按鈕（已移到鍵盤下方）
     let bottomActionsHtml = '';
     if (isKeypadMode) {
       if (idx !== 0) {
-        // 第2筆以後的卡片仍保留按鈕在底部，方便操作多筆結果
         const actionCheckBtnInner = item.checked
-          ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
-               <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
+          ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-3" style="min-height:3.5rem;font-size:1.05rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
+               <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (取消)
              </button>`
-          : `<button type="button" class="btn btn-success fw-bold flex-fill py-4 shadow-sm" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
+          : `<button type="button" class="btn btn-success fw-bold flex-fill py-3 shadow-sm" style="min-height:3.5rem;font-size:1.05rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
                <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
              </button>`;
         bottomActionsHtml = `
         <div class="d-flex gap-2 mt-2 pt-2 border-top">
           ${actionCheckBtnInner}
-          <button type="button" class="btn btn-primary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="openDetailModal('${item.assetKey}')">
-            <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
+          <button type="button" class="btn btn-warning fw-bold text-dark flex-fill py-3" style="min-height:3.5rem;font-size:1.05rem;" onclick="triggerAssetPhotoCapture('${item.assetKey}', 'camera')">
+            <i class="bi bi-camera-fill me-1"></i>📷 拍照 (${itemPhotos.length})
+          </button>
+          <button type="button" class="btn btn-primary fw-bold flex-fill py-3" style="min-height:3.5rem;font-size:1.05rem;" onclick="openDetailModal('${item.assetKey}')">
+            <i class="bi bi-pencil-square me-1"></i>✏️ 異動
           </button>
         </div>`;
       }
-      // idx===0 時 bottomActionsHtml 保持空白
     } else {
-      // 相機模式維持原本底部按鈕
       const actionCheckBtnCam = item.checked
-        ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
-             <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
+        ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-3" style="min-height:3.5rem;font-size:1.05rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
+             <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (取消)
            </button>`
-        : `<button type="button" class="btn btn-success fw-bold flex-fill py-4 shadow-sm" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
+        : `<button type="button" class="btn btn-success fw-bold flex-fill py-3 shadow-sm" style="min-height:3.5rem;font-size:1.05rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
              <i class="bi bi-check2-circle me-1"></i>✅ 標記已盤點
            </button>`;
       bottomActionsHtml = `
         <div class="d-flex gap-2 mt-2 pt-2 border-top">
           ${actionCheckBtnCam}
-          <button type="button" class="btn btn-primary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="openDetailModal('${item.assetKey}')">
-            <i class="bi bi-pencil-square me-1"></i>✏️ 異動此設備
+          <button type="button" class="btn btn-warning fw-bold text-dark flex-fill py-3" style="min-height:3.5rem;font-size:1.05rem;" onclick="triggerAssetPhotoCapture('${item.assetKey}', 'camera')">
+            <i class="bi bi-camera-fill me-1"></i>📷 拍照 (${itemPhotos.length})
+          </button>
+          <button type="button" class="btn btn-primary fw-bold flex-fill py-3" style="min-height:3.5rem;font-size:1.05rem;" onclick="openDetailModal('${item.assetKey}')">
+            <i class="bi bi-pencil-square me-1"></i>✏️ 異動
           </button>
         </div>`;
     }
@@ -1364,6 +1780,7 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
         ${item.notes ? `<div class="p-2 bg-info-subtle text-info-emphasis rounded small mb-2"><i class="bi bi-sticky-fill me-1"></i>備註：${item.notes}</div>` : ''}
         ${item.scrapReason ? `<div class="p-2 bg-danger-subtle text-danger-emphasis rounded small mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>報廢原因：${item.scrapReason}</div>` : ''}
 
+        ${cardPhotosStripHtml}
         ${bottomActionsHtml}
       </div>
     `;
@@ -1753,6 +2170,7 @@ function handleExcelUpload(e) {
           checkedTime: existing ? existing.checkedTime : '',
           checkedTimestamp: existing && existing.checkedTimestamp ? existing.checkedTimestamp : 0,
           autoExpired: existing && existing.autoExpired ? existing.autoExpired : false,
+          photos: existing && Array.isArray(existing.photos) ? existing.photos : [],
           history: existing && existing.history ? existing.history : [
             { time: formatDateTime(new Date()), action: '清冊匯入建檔', note: '原始 Excel 匯入' }
           ]
@@ -1925,17 +2343,20 @@ function updateBatchSelectionUI() {
   const statSelectedEl = document.getElementById('statSelected');
   const btnCheckText = document.getElementById('btnBatchCheckText');
   const btnUncheckText = document.getElementById('btnBatchUncheckText');
+  const btnBatchEditText = document.getElementById('btnBatchEditText');
 
   if (visibleSelectedCount > 0) {
     selBadge.style.display = 'inline-block';
     statSelectedEl.innerText = visibleSelectedCount;
     btnCheckText.innerText = `盤點已選 (${visibleSelectedCount})`;
     btnUncheckText.innerText = `取消已選 (${visibleSelectedCount})`;
+    if (btnBatchEditText) btnBatchEditText.innerText = `🔄 批次異動已選 (${visibleSelectedCount})`;
   } else {
     selBadge.style.display = 'none';
     statSelectedEl.innerText = '0';
     btnCheckText.innerText = `一鍵盤點篩選 (${visibleItems.length})`;
     btnUncheckText.innerText = `批次取消盤點`;
+    if (btnBatchEditText) btnBatchEditText.innerText = `🔄 批次異動篩選 (${visibleItems.length})`;
   }
 }
 
@@ -2073,15 +2494,23 @@ function renderTable() {
         <div class="small text-muted font-monospace">${item.categoryCode || ''}</div>
       </td>
       <td>
-        <div class="fw-bold">${item.name}</div>
-        <div class="small text-muted text-truncate" style="max-width: 260px;" title="${item.spec}">${item.spec}</div>
-        ${item.notes ? `<div class="small text-info-emphasis"><i class="bi bi-sticky me-1"></i>${item.notes}</div>` : ''}
+        <div class="d-flex align-items-center gap-2">
+          <div>
+            <div class="fw-bold">${item.name}</div>
+            <div class="small text-muted text-truncate" style="max-width: 260px;" title="${item.spec}">${item.spec}</div>
+            ${item.notes ? `<div class="small text-info-emphasis"><i class="bi bi-sticky me-1"></i>${item.notes}</div>` : ''}
+          </div>
+          ${Array.isArray(item.photos) && item.photos.length > 0 ? buildTablePhotoBadgeHtml(item.assetKey, item.photos) : ''}
+        </div>
       </td>
       <td><span class="badge bg-light text-dark border">${item.location || '未設定'}</span></td>
       <td>${item.custodian || '-'}</td>
       <td>${statusBadge}</td>
       <td>${checkTimeDisplay}</td>
       <td class="text-end text-nowrap">
+        <button class="btn btn-sm btn-outline-warning text-dark me-1" onclick="triggerAssetPhotoCapture('${item.assetKey}', 'camera')" title="現場拍照存證">
+          <i class="bi bi-camera-fill"></i>${Array.isArray(item.photos) && item.photos.length > 0 ? `<span class="ms-1 fw-bold">${item.photos.length}</span>` : ''}
+        </button>
         <button class="btn btn-sm btn-outline-primary me-1" onclick="openDetailModal('${item.assetKey}')" title="編輯與異動詳情">
           <i class="bi bi-pencil-square"></i> 異動
         </button>
@@ -2229,6 +2658,7 @@ function openDetailModal(key) {
 
   handleStatusChange();
   renderTimeline(asset.history || []);
+  renderDetailPhotoGallery(asset);
 
   const modalEl = document.getElementById('assetDetailModal');
   const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -2390,7 +2820,9 @@ function exportUpdatedExcel() {
       '［系統］盤點狀態': item.checked ? '已盤點' : '未盤點',
       '［系統］最後盤點時間': item.checkedTime || '',
       '［系統］設備狀態': statText,
-      '［系統］報廢原因': item.scrapReason || ''
+      '［系統］報廢原因': item.scrapReason || '',
+      '［系統］照片張數': Array.isArray(item.photos) ? item.photos.length : 0,
+      '［系統］雲端照片連結': Array.isArray(item.photos) ? item.photos.map(p => p.viewUrl || p.driveUrl || '本機待上傳').join(' ; ') : ''
     });
   });
 
@@ -2425,6 +2857,674 @@ function clearAllData() {
   }
 }
 
+
+// =========================================================
+// 📦 方案三：多筆勾選「批次移轉地點／保管人」與「批次報廢」功能
+// =========================================================
+function openBatchEditModal() {
+  const visibleItems = getFilteredAndSortedAssets();
+  if (visibleItems.length === 0) {
+    alert('目前畫面無任何符合篩選條件的設備可供批次異動。');
+    return;
+  }
+  const selectedVisibleItems = visibleItems.filter(item => selectedKeysSet.has(item.assetKey));
+  const isUsingSelection = selectedVisibleItems.length > 0;
+  const targetItems = isUsingSelection ? selectedVisibleItems : visibleItems;
+
+  const scopeEl = document.getElementById('batchEditScopeText');
+  if (scopeEl) {
+    scopeEl.innerText = isUsingSelection
+      ? `手動勾選挑出的 ${targetItems.length} 筆設備`
+      : `目前篩選出的全部 ${targetItems.length} 筆設備`;
+  }
+
+  document.getElementById('batchEditLocation').value = '';
+  document.getElementById('batchEditCustodian').value = '';
+  document.getElementById('batchEditStatus').value = '';
+  document.getElementById('batchEditScrapReason').value = '';
+  document.getElementById('batchEditNoteMode').value = 'append';
+  document.getElementById('batchEditNotes').value = '';
+  document.getElementById('batchEditMarkChecked').checked = true;
+  handleBatchStatusChange();
+
+  const modalEl = document.getElementById('batchEditModal');
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+
+function handleBatchStatusChange() {
+  const st = document.getElementById('batchEditStatus').value;
+  const box = document.getElementById('batchScrapReasonBox');
+  if (box) {
+    box.style.display = (st === 'pending_scrap' || st === 'scrapped') ? 'block' : 'none';
+  }
+}
+
+async function executeBatchEdit() {
+  const visibleItems = getFilteredAndSortedAssets();
+  const selectedVisibleItems = visibleItems.filter(item => selectedKeysSet.has(item.assetKey));
+  const isUsingSelection = selectedVisibleItems.length > 0;
+  const targetItems = isUsingSelection ? selectedVisibleItems : visibleItems;
+
+  if (targetItems.length === 0) return;
+
+  const newLoc = document.getElementById('batchEditLocation').value.trim();
+  const newCus = document.getElementById('batchEditCustodian').value.trim();
+  const newStat = document.getElementById('batchEditStatus').value;
+  const newReason = document.getElementById('batchEditScrapReason').value.trim();
+  const noteMode = document.getElementById('batchEditNoteMode').value;
+  const newNotes = document.getElementById('batchEditNotes').value.trim();
+  const markChecked = document.getElementById('batchEditMarkChecked').checked;
+
+  if (!newLoc && !newCus && !newStat && !newNotes && !markChecked) {
+    alert('請至少輸入一項欲批次變更的內容（地點、保管人、狀態、備註或標記已盤點）。');
+    return;
+  }
+
+  const scopeDesc = isUsingSelection
+    ? `您手動勾選的 ${targetItems.length} 筆設備`
+    : `目前篩選出的全部 ${targetItems.length} 筆設備`;
+
+  let summaryLines = [];
+  if (newLoc) summaryLines.push(`• 移轉存放地點 ➔ 【${newLoc}】`);
+  if (newCus) summaryLines.push(`• 移轉保管人員 ➔ 【${newCus}】`);
+  if (newStat) {
+    const stName = newStat === 'in_use' ? '正常在用' : (newStat === 'pending_scrap' ? '擬報廢' : '已報廢');
+    summaryLines.push(`• 變更設備狀態 ➔ 【${stName}】${newReason ? ` (原因: ${newReason})` : ''}`);
+  }
+  if (newNotes) summaryLines.push(`• ${noteMode === 'append' ? '附加備註' : '覆蓋備註'} ➔ 【${newNotes}】`);
+  if (markChecked) summaryLines.push(`• 同步標記為【已盤點】並更新最後盤點時間`);
+
+  if (!confirm(`確定要對「${scopeDesc}」執行以下批次異動嗎？\n\n${summaryLines.join('\n')}`)) {
+    return;
+  }
+
+  const nowObj = new Date();
+  const nowStr = formatDateTime(nowObj);
+  const nowMs = nowObj.getTime();
+  const batchUpdates = {};
+
+  targetItems.forEach(item => {
+    let itemLogs = [];
+    if (newLoc && item.location !== newLoc) {
+      itemLogs.push(`地點移轉: [${item.location || '未設定'}] ➔ [${newLoc}]`);
+      item.location = newLoc;
+    }
+    if (newCus && item.custodian !== newCus) {
+      itemLogs.push(`保管人移轉: [${item.custodian || '-'}] ➔ [${newCus}]`);
+      item.custodian = newCus;
+    }
+    if (newStat && (item.status !== newStat || (newReason && item.scrapReason !== newReason))) {
+      itemLogs.push(`狀態變更: [${item.status}] ➔ [${newStat}]${newReason ? ` (原因: ${newReason})` : ''}`);
+      item.status = newStat;
+      if (newReason || newStat === 'in_use') {
+        item.scrapReason = newStat === 'in_use' ? '' : newReason;
+      }
+    }
+    if (newNotes) {
+      if (noteMode === 'append' && item.notes) {
+        item.notes = `${item.notes}；${newNotes}`;
+      } else {
+        item.notes = newNotes;
+      }
+      itemLogs.push(`批次備註: ${newNotes}`);
+    }
+    if (markChecked) {
+      item.checked = true;
+      item.checkedTime = nowStr;
+      item.checkedTimestamp = nowMs;
+      item.autoExpired = false;
+    }
+
+    if (!item.history) item.history = [];
+    if (itemLogs.length > 0) {
+      item.history.push({
+        time: nowStr,
+        action: '📦 批次異動管理',
+        note: itemLogs.join('；')
+      });
+    } else if (markChecked) {
+      item.history.push({
+        time: nowStr,
+        action: '📦 批次異動確認盤點',
+        note: '批次確認設備在用並標記已盤點'
+      });
+    }
+
+    batchUpdates[item.assetKey] = item;
+    saveToIDB(item);
+  });
+
+  if (isUsingSelection) {
+    targetItems.forEach(item => selectedKeysSet.delete(item.assetKey));
+  }
+
+  try {
+    await firebaseDb.ref('assets').update(batchUpdates);
+  } catch (e) {
+    console.warn('批次異動寫入雲端暫存:', e);
+  }
+
+  rebuildFilterSets();
+  updateStats();
+  renderTable();
+  refreshQuickResultsIfActive();
+
+  const modalEl = document.getElementById('batchEditModal');
+  const inst = bootstrap.Modal.getInstance(modalEl);
+  if (inst) inst.hide();
+}
+
+// =========================================================
+// 📸 方案四：高畫質多張現場拍照存證 + 本機離線佇列 + 自動同步 Google Drive (含方案 A 雙向同步刪除)
+// =========================================================
+function triggerAssetPhotoCapture(assetKey, mode = 'camera') {
+  if (!assetKey || !assetsMap.has(assetKey)) {
+    alert('請先選擇要拍照存證的財產設備。');
+    return;
+  }
+  currentPhotoCaptureAssetKey = assetKey;
+  const inputId = mode === 'camera' ? 'globalCameraInput' : 'globalGalleryInput';
+  const inputEl = document.getElementById(inputId);
+  if (inputEl) {
+    inputEl.value = '';
+    inputEl.click();
+  }
+}
+
+// 將單張圖片壓縮為高畫質 1500px (約 150~250KB, 供上傳 Google Drive 與本機清楚檢視) 及輕量縮圖 280px (供跨裝置即時預覽)
+function compressPhotoFile(file, maxHighRes = 1500, qualityHigh = 0.82, maxThumb = 280, qualityThumb = 0.65) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // 1. 產生高畫質 1500px 圖檔
+        let w = img.width;
+        let h = img.height;
+        if (w > maxHighRes || h > maxHighRes) {
+          if (w > h) {
+            h = Math.round((h * maxHighRes) / w);
+            w = maxHighRes;
+          } else {
+            w = Math.round((w * maxHighRes) / h);
+            h = maxHighRes;
+          }
+        }
+        const canvasHigh = document.createElement('canvas');
+        canvasHigh.width = w;
+        canvasHigh.height = h;
+        const ctxHigh = canvasHigh.getContext('2d');
+        ctxHigh.drawImage(img, 0, 0, w, h);
+        const highDataUrl = canvasHigh.toDataURL('image/jpeg', qualityHigh);
+
+        // 2. 產生輕量縮圖供列表與卡片即時顯示
+        let tw = img.width;
+        let th = img.height;
+        if (tw > maxThumb || th > maxThumb) {
+          if (tw > th) {
+            th = Math.round((th * maxThumb) / tw);
+            tw = maxThumb;
+          } else {
+            tw = Math.round((tw * maxThumb) / th);
+            th = maxThumb;
+          }
+        }
+        const canvasThumb = document.createElement('canvas');
+        canvasThumb.width = tw;
+        canvasThumb.height = th;
+        const ctxThumb = canvasThumb.getContext('2d');
+        ctxThumb.drawImage(img, 0, 0, tw, th);
+        const thumbDataUrl = canvasThumb.toDataURL('image/jpeg', qualityThumb);
+
+        resolve({ highDataUrl, thumbDataUrl, width: w, height: h });
+      };
+      img.onerror = (err) => reject(err);
+      img.src = e.target.result;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handlePhotoFilesSelected(event) {
+  const files = Array.from(event.target.files || []);
+  if (files.length === 0 || !currentPhotoCaptureAssetKey) return;
+
+  const asset = assetsMap.get(currentPhotoCaptureAssetKey);
+  if (!asset) return;
+  if (!Array.isArray(asset.photos)) asset.photos = [];
+
+  const now = new Date();
+  const nowStr = formatDateTime(now);
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    try {
+      const { highDataUrl, thumbDataUrl } = await compressPhotoFile(file, 1500, 0.82, 280, 0.65);
+      const photoId = `ph_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const safeName = String(asset.name || '設備').replace(/[\\/:*?"<>|]/g, '_');
+      const fileName = `${asset.assetNo || asset.assetKey}_${safeName}_${now.toISOString().slice(0,10).replace(/-/g,'')}_${asset.photos.length + 1}.jpg`;
+
+      // 1. 先存入本機 IndexedDB 待上傳佇列 (0 延遲，離線可用)
+      const queueItem = {
+        photoId: photoId,
+        assetKey: asset.assetKey,
+        assetNo: asset.assetNo || asset.assetKey,
+        assetName: asset.name || '',
+        fileName: fileName,
+        dataUrl: highDataUrl,
+        thumbDataUrl: thumbDataUrl,
+        createdAt: nowStr,
+        timestamp: Date.now(),
+        status: 'pending',
+        lastError: ''
+      };
+      photoQueueMap.set(photoId, queueItem);
+      savePhotoQueueToIDB(queueItem);
+
+      // 2. 寫入設備的 photos 陣列 (保留輕量 thumbDataUrl 讓卡片與列表立即顯示)
+      asset.photos.push({
+        photoId: photoId,
+        fileName: fileName,
+        createdAt: nowStr,
+        syncStatus: 'pending', // 'pending' | 'synced'
+        driveFileId: '',
+        driveUrl: '',
+        viewUrl: '',
+        thumbUrl: '',
+        thumbDataUrl: thumbDataUrl
+      });
+    } catch (err) {
+      console.error('處理照片失敗:', err);
+      alert('處理照片時發生錯誤：' + err.message);
+    }
+  }
+
+  // 拍照存證同步記錄至異動履歷並更新最後盤點日期
+  asset.checked = true;
+  asset.checkedTime = nowStr;
+  asset.checkedTimestamp = now.getTime();
+  asset.autoExpired = false;
+  if (!asset.history) asset.history = [];
+  asset.history.push({
+    time: nowStr,
+    action: '📸 現場拍照存證',
+    note: `拍攝新增 ${files.length} 張設備照片（目前共 ${asset.photos.length} 張）`
+  });
+
+  saveAsset(asset);
+  playBeep(987, 0.12);
+  triggerVibration();
+
+  updatePhotoQueueBadges();
+  updateStats();
+  renderTable();
+  refreshQuickResultsIfActive();
+
+  // 若詳情視窗正開啟該設備，立即刷新詳情視窗內的照片牆
+  const detailKeyEl = document.getElementById('editAssetKey');
+  if (detailKeyEl && detailKeyEl.value === asset.assetKey) {
+    renderDetailPhotoGallery(asset);
+    renderTimeline(asset.history || []);
+  }
+
+  // 3. 若網路通暢且已設定 GAS 網址，背景自動上傳至 Google 雲端硬碟
+  if (navigator.onLine && gasUploadUrl) {
+    processPhotoSyncQueue(false);
+  }
+}
+
+// 取得單張照片最佳顯示圖片來源 (優先順序：本機佇列高畫質 > Google Drive 縮圖/連結 > 內嵌輕量縮圖)
+function getPhotoDisplaySrc(photoObj, preferHighRes = false) {
+  if (!photoObj) return '';
+  const qItem = photoQueueMap.get(photoObj.photoId);
+  if (qItem && qItem.dataUrl) {
+    return preferHighRes ? qItem.dataUrl : (qItem.thumbDataUrl || qItem.dataUrl);
+  }
+  if (preferHighRes) {
+    return photoObj.thumbUrl || photoObj.driveUrl || photoObj.thumbDataUrl || '';
+  }
+  return photoObj.thumbDataUrl || photoObj.thumbUrl || photoObj.driveUrl || '';
+}
+
+// 建立卡片或詳情中的水平照片縮圖牆 HTML
+function buildAssetPhotosHtml(assetKey, photosArr, showDeleteBtn = true) {
+  if (!Array.isArray(photosArr) || photosArr.length === 0) return '';
+  return photosArr.map((p, idx) => {
+    const src = getPhotoDisplaySrc(p, false);
+    const isSynced = p.syncStatus === 'synced' && p.driveFileId;
+    const statusBadge = isSynced
+      ? `<span class="photo-status-dot bg-success text-white" title="已上傳 Google 雲端硬碟"><i class="bi bi-cloud-check-fill"></i></span>`
+      : `<span class="photo-status-dot bg-warning text-dark" title="本機已存 (待網路自動上傳雲端)"><i class="bi bi-hourglass-split"></i></span>`;
+    const delBtn = showDeleteBtn
+      ? `<button type="button" class="photo-del-mini-btn" onclick="event.stopPropagation(); deleteAssetPhoto('${assetKey}', '${p.photoId}')" title="刪除此照片"><i class="bi bi-x"></i></button>`
+      : '';
+    return `
+      <div class="photo-thumb-wrapper shadow-sm" onclick="openPhotoLightbox('${assetKey}', '${p.photoId}')" title="點擊放大檢視 (${p.createdAt || ''})">
+        <img src="${src}" alt="設備照片 ${idx + 1}" loading="lazy">
+        ${delBtn}
+        ${statusBadge}
+      </div>
+    `;
+  }).join('');
+}
+
+// 建立財產查詢表格中的迷你縮圖與張數標籤
+function buildTablePhotoBadgeHtml(assetKey, photosArr) {
+  if (!Array.isArray(photosArr) || photosArr.length === 0) return '';
+  const firstSrc = getPhotoDisplaySrc(photosArr[0], false);
+  const pendingCount = photosArr.filter(p => p.syncStatus !== 'synced').length;
+  return `
+    <div class="d-inline-flex align-items-center gap-1 bg-light border rounded-pill pe-2 py-0" style="cursor:pointer;" onclick="openPhotoLightbox('${assetKey}', '${photosArr[0].photoId}')" title="點擊檢視 ${photosArr.length} 張設備存證照片">
+      <img src="${firstSrc}" class="table-mini-thumb rounded-circle" alt="縮圖">
+      <span class="small fw-bold text-primary">${photosArr.length}張</span>
+      ${pendingCount > 0 ? `<i class="bi bi-hourglass-split text-warning small" title="${pendingCount} 張待上傳雲端"></i>` : `<i class="bi bi-cloud-check-fill text-success small" title="已同步雲端硬碟"></i>`}
+    </div>
+  `;
+}
+
+// 渲染「設備詳情 Modal」內的照片縮圖牆
+function renderDetailPhotoGallery(asset) {
+  const galleryEl = document.getElementById('detailPhotoGallery');
+  const countBadge = document.getElementById('detailPhotoCountBadge');
+  if (!galleryEl || !asset) return;
+
+  const photos = Array.isArray(asset.photos) ? asset.photos : [];
+  if (countBadge) countBadge.innerText = `${photos.length} 張`;
+
+  if (photos.length === 0) {
+    galleryEl.innerHTML = `<div class="text-muted small py-2">尚無存證照片，點擊右上角「📷 拍照」或「相簿多選」即可新增設備現況或放置位置照片。</div>`;
+    return;
+  }
+  galleryEl.innerHTML = buildAssetPhotosHtml(asset.assetKey, photos, true);
+}
+
+// 開啟高畫質相簿燈箱檢視單張或多張照片
+function openPhotoLightbox(assetKey, photoId) {
+  const asset = assetsMap.get(assetKey);
+  if (!asset || !Array.isArray(asset.photos) || asset.photos.length === 0) return;
+
+  const photoObj = asset.photos.find(p => p.photoId === photoId) || asset.photos[0];
+  const mainImg = document.getElementById('lightboxMainImg');
+  const titleEl = document.getElementById('lightboxTitle');
+  const statusBadge = document.getElementById('lightboxStatusBadge');
+  const metaText = document.getElementById('lightboxMetaText');
+  const driveLink = document.getElementById('lightboxDriveLink');
+  const delBtn = document.getElementById('lightboxDeleteBtn');
+  const stripEl = document.getElementById('lightboxThumbsStrip');
+
+  if (titleEl) titleEl.innerText = `[${asset.assetNo || asset.assetKey}] ${asset.name} — 存證照片 (${asset.photos.length} 張)`;
+  if (mainImg) mainImg.src = getPhotoDisplaySrc(photoObj, true);
+  if (metaText) metaText.innerText = `${photoObj.fileName || ''} | 拍攝時間: ${photoObj.createdAt || '-'}`;
+
+  if (photoObj.syncStatus === 'synced' && photoObj.driveFileId) {
+    statusBadge.className = 'badge bg-success me-1';
+    statusBadge.innerHTML = '<i class="bi bi-cloud-check-fill me-1"></i>已存 Google 雲端硬碟';
+    if (driveLink) {
+      driveLink.href = photoObj.viewUrl || `https://drive.google.com/file/d/${photoObj.driveFileId}/view`;
+      driveLink.style.display = 'inline-block';
+    }
+  } else {
+    statusBadge.className = 'badge bg-warning text-dark me-1';
+    statusBadge.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>本機已存 (待網路自動上傳雲端)';
+    if (driveLink) driveLink.style.display = 'none';
+  }
+
+  if (delBtn) {
+    delBtn.onclick = () => deleteAssetPhoto(assetKey, photoObj.photoId, true);
+  }
+
+  if (stripEl) {
+    stripEl.innerHTML = asset.photos.map((p, idx) => {
+      const activeBorder = p.photoId === photoObj.photoId ? 'border: 3px solid #0dcaf0;' : 'opacity: 0.7;';
+      return `
+        <div class="photo-thumb-wrapper" style="${activeBorder}" onclick="openPhotoLightbox('${assetKey}', '${p.photoId}')">
+          <img src="${getPhotoDisplaySrc(p, false)}" alt="縮圖 ${idx + 1}">
+        </div>
+      `;
+    }).join('');
+  }
+
+  const modalEl = document.getElementById('photoLightboxModal');
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+
+// 方案 A：雙向同步刪除單張照片 (從本機、Firebase 與 Google 雲端硬碟同步移除)
+async function deleteAssetPhoto(assetKey, photoId, fromLightbox = false) {
+  const asset = assetsMap.get(assetKey);
+  if (!asset || !Array.isArray(asset.photos)) return;
+
+  const photoObj = asset.photos.find(p => p.photoId === photoId);
+  if (!photoObj) return;
+
+  const isSynced = photoObj.syncStatus === 'synced' && photoObj.driveFileId;
+  const confirmMsg = isSynced
+    ? `確定要刪除這張存證照片嗎？\n\n【檔案】：${photoObj.fileName || photoId}\n（方案 A：將同時從系統與 Google 雲端硬碟移至垃圾桶）`
+    : `確定要從本機與系統刪除這張尚未上傳的照片嗎？`;
+
+  if (!confirm(confirmMsg)) return;
+
+  // 1. 從本機待上傳佇列移除
+  if (photoQueueMap.has(photoId)) {
+    photoQueueMap.delete(photoId);
+    deletePhotoQueueFromIDB(photoId);
+  }
+
+  // 2. 若已上傳至 Google Drive 且有設定 GAS 網址，發送雙向刪除請求
+  if (isSynced && gasUploadUrl && navigator.onLine) {
+    fetch(gasUploadUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'delete',
+        folderId: GOOGLE_DRIVE_FOLDER_ID,
+        driveFileId: photoObj.driveFileId
+      })
+    }).catch(e => console.warn('通知雲端硬碟刪除照片異常:', e));
+  }
+
+  // 3. 從設備 photos 陣列移除並儲存回 Firebase
+  asset.photos = asset.photos.filter(p => p.photoId !== photoId);
+  if (!asset.history) asset.history = [];
+  asset.history.push({
+    time: formatDateTime(new Date()),
+    action: '🗑️ 刪除存證照片',
+    note: `移除照片 ${photoObj.fileName || photoId} (剩餘 ${asset.photos.length} 張)`
+  });
+
+  saveAsset(asset);
+  updatePhotoQueueBadges();
+  renderTable();
+  refreshQuickResultsIfActive();
+
+  const detailKeyEl = document.getElementById('editAssetKey');
+  if (detailKeyEl && detailKeyEl.value === assetKey) {
+    renderDetailPhotoGallery(asset);
+    renderTimeline(asset.history || []);
+  }
+
+  if (fromLightbox) {
+    if (asset.photos.length > 0) {
+      openPhotoLightbox(assetKey, asset.photos[0].photoId);
+    } else {
+      const lbModal = bootstrap.Modal.getInstance(document.getElementById('photoLightboxModal'));
+      if (lbModal) lbModal.hide();
+    }
+  }
+}
+
+// ☁️ 開啟雲端照片設定與待上傳佇列視窗
+function openCloudPhotoSettingsModal() {
+  const inp = document.getElementById('gasUploadUrlInput');
+  if (inp) inp.value = gasUploadUrl || '';
+  renderPhotoQueueListInModal();
+  const modalEl = document.getElementById('cloudPhotoSettingsModal');
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+
+function saveGasUploadUrl() {
+  const inp = document.getElementById('gasUploadUrlInput');
+  if (!inp) return;
+  const val = inp.value.trim();
+  gasUploadUrl = val;
+  localStorage.setItem('gas_upload_url', val);
+  try {
+    firebaseDb.ref('config/gasUploadUrl').set(val);
+  } catch (e) {}
+  alert('Google Apps Script 雲端硬碟上傳網址已儲存並同步至全校雲端設定！');
+  if (val && photoQueueMap.size > 0 && navigator.onLine) {
+    processPhotoSyncQueue(true);
+  }
+}
+
+function updatePhotoQueueBadges() {
+  const count = photoQueueMap.size;
+  const navBadge = document.getElementById('navPhotoQueueBadge');
+  if (navBadge) {
+    if (count > 0) {
+      navBadge.style.display = 'inline-block';
+      navBadge.innerText = `${count}待傳`;
+    } else {
+      navBadge.style.display = 'none';
+    }
+  }
+  const modalCount = document.getElementById('modalQueueCount');
+  if (modalCount) modalCount.innerText = count;
+  renderPhotoQueueListInModal();
+}
+
+function renderPhotoQueueListInModal() {
+  const container = document.getElementById('photoQueueListContainer');
+  if (!container) return;
+  if (photoQueueMap.size === 0) {
+    container.innerHTML = `<div class="text-center text-muted small py-3"><i class="bi bi-check-circle-fill text-success me-1"></i>目前無待上傳照片，所有本機照片皆已同步至雲端！</div>`;
+    return;
+  }
+  let html = '';
+  photoQueueMap.forEach(q => {
+    html += `
+      <div class="d-flex align-items-center justify-content-between border-bottom py-2 px-1 small">
+        <div class="d-flex align-items-center gap-2">
+          <img src="${q.thumbDataUrl || q.dataUrl}" class="table-mini-thumb" alt="待傳縮圖">
+          <div>
+            <div class="fw-bold text-dark">[${q.assetNo}] ${q.assetName}</div>
+            <div class="text-muted" style="font-size:0.75rem;">${q.fileName} | ${q.createdAt}</div>
+            ${q.lastError ? `<div class="text-danger" style="font-size:0.72rem;">狀態: ${q.lastError}</div>` : ''}
+          </div>
+        </div>
+        <span class="badge ${q.status === 'uploading' ? 'bg-info text-dark' : 'bg-warning text-dark'}">
+          ${q.status === 'uploading' ? '上傳中...' : '待上傳'}
+        </span>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+// 背景自動巡檢並上傳本機佇列照片至 Google 雲端硬碟 (資料夾 1H9w8hjb-6SdBBsN1xGN1LEWPT0bnsZT6)
+async function processPhotoSyncQueue(isManualTrigger = false) {
+  if (isSyncingPhotos) return;
+  if (photoQueueMap.size === 0) {
+    if (isManualTrigger) alert('目前沒有待上傳的本機照片！');
+    return;
+  }
+  if (!navigator.onLine) {
+    if (isManualTrigger) alert('目前手機或電腦處於離線狀態，待網路恢復後系統將自動上傳。');
+    return;
+  }
+  if (!gasUploadUrl) {
+    if (isManualTrigger) {
+      alert('尚未設定 Google Apps Script (GAS) 網頁應用程式上傳網址！\n請先於下方展開說明部署 GAS 並貼上網址。');
+    }
+    return;
+  }
+
+  isSyncingPhotos = true;
+  const btnForce = document.getElementById('btnForceSyncQueue');
+  if (btnForce) {
+    btnForce.disabled = true;
+    btnForce.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>上傳雲端硬碟中...';
+  }
+
+  let successCount = 0;
+  const queueItems = Array.from(photoQueueMap.values());
+
+  for (const qItem of queueItems) {
+    qItem.status = 'uploading';
+    renderPhotoQueueListInModal();
+
+    try {
+      const response = await fetch(gasUploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'upload',
+          folderId: GOOGLE_DRIVE_FOLDER_ID,
+          fileName: qItem.fileName,
+          mimeType: 'image/jpeg',
+          dataUrl: qItem.dataUrl
+        })
+      });
+
+      const result = await response.json();
+      if (result && result.status === 'ok' && result.driveFileId) {
+        // 更新對應設備的 photo 紀錄為 synced
+        const asset = assetsMap.get(qItem.assetKey);
+        if (asset && Array.isArray(asset.photos)) {
+          const targetPhoto = asset.photos.find(p => p.photoId === qItem.photoId);
+          if (targetPhoto) {
+            targetPhoto.syncStatus = 'synced';
+            targetPhoto.driveFileId = result.driveFileId;
+            targetPhoto.driveUrl = result.driveUrl || `https://drive.google.com/uc?export=view&id=${result.driveFileId}`;
+            targetPhoto.viewUrl = result.viewUrl || `https://drive.google.com/file/d/${result.driveFileId}/view`;
+            targetPhoto.thumbUrl = result.thumbUrl || `https://drive.google.com/thumbnail?id=${result.driveFileId}&sz=w1600`;
+          }
+          saveAsset(asset);
+        }
+
+        // 從本機待上傳佇列移除已成功上傳的高畫質暫存
+        photoQueueMap.delete(qItem.photoId);
+        deletePhotoQueueFromIDB(qItem.photoId);
+        successCount++;
+      } else {
+        throw new Error((result && result.message) || 'GAS 回傳格式異常');
+      }
+    } catch (err) {
+      console.warn('上傳照片至 Google Drive 暫時失敗 (將於網路穩定時重試):', err);
+      qItem.status = 'pending';
+      qItem.lastError = '等待重試 (' + (err.message || '連線異常') + ')';
+      savePhotoQueueToIDB(qItem);
+    }
+  }
+
+  isSyncingPhotos = false;
+  if (btnForce) {
+    btnForce.disabled = false;
+    btnForce.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>立即手動上傳佇列';
+  }
+
+  updatePhotoQueueBadges();
+  renderTable();
+  refreshQuickResultsIfActive();
+
+  const detailKeyEl = document.getElementById('editAssetKey');
+  if (detailKeyEl && detailKeyEl.value && assetsMap.has(detailKeyEl.value)) {
+    renderDetailPhotoGallery(assetsMap.get(detailKeyEl.value));
+  }
+
+  if (isManualTrigger && successCount > 0) {
+    alert(`成功上傳 ${successCount} 張高畫質照片至 Google 雲端硬碟！`);
+  }
+}
+
+// 監聽瀏覽器網路恢復事件，自動將手機離線暫存照片上傳至 Google 雲端硬碟
+window.addEventListener('online', () => {
+  if (photoQueueMap.size > 0 && gasUploadUrl) {
+    processPhotoSyncQueue(false);
+  }
+});
+
 window.addEventListener('DOMContentLoaded', () => {
   initSystem();
 
@@ -2448,5 +3548,5 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
-</body>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
 </html>
