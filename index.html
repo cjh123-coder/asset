@@ -474,8 +474,7 @@
     <!-- 子模式 A：🔢 鍵盤後 4 碼輸入區 (預設顯示) -->
     <div id="quickKeypadSection" class="card border-0 shadow-sm mb-3">
       <div class="card-body p-3 text-center">
-
-        <!-- 4 碼數字格顯示器 (避免跳出手機原生輸入法) -->
+<!-- 4 碼數字格顯示器 (避免跳出手機原生輸入法) -->
         <span id="pinInputHint" style="display:none;">輸入滿 4 碼自動查詢</span>
         <div class="pin-display-container" onclick="focusPinDisplay()">
           <div class="pin-digit-box active-slot" id="pinSlot0"></div>
@@ -504,7 +503,7 @@
           </button>
         </div>
 
-        <!-- 管理員快捷操作列：查詢到結果時，操作按鈕移至鍵盤下方，避免滑到底部 -->
+        <!-- 管理員快捷操作列：查詢到結果時，操作按鈕移至鍵盤下方 -->
         <div id="quickKeypadActionBar" class="mt-3" style="display:none;"></div>
       </div>
     </div>
@@ -791,24 +790,8 @@ const firebaseConfig = {
   appId: "1:427140371493:web:8008b2405dafed8daddbcc"
 };
 
-try {
-  firebase.initializeApp(firebaseConfig);
-} catch(e) {
-  console.warn('Firebase 重複初始化，忽略:', e);
-}
-let firebaseDb;
-try {
-  firebaseDb = firebase.database();
-} catch(e) {
-  console.error('Firebase database 初始化失敗:', e);
-  document.addEventListener('DOMContentLoaded', () => {
-    const badge = document.getElementById('cloudStatusBadge');
-    if (badge) {
-      badge.className = 'badge bg-danger text-white ms-2 fw-normal';
-      badge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>Firebase SDK 載入失敗';
-    }
-  });
-}
+firebase.initializeApp(firebaseConfig);
+const firebaseDb = firebase.database();
 
 // 一年毫秒數常數 (365天)
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -819,7 +802,7 @@ let locationsSet = new Set();
 let custodiansSet = new Set();
 let selectedKeysSet = new Set(); // 儲存使用者額外挑選出來的設備 key
 
-// 掃描器共用變數 (保留給快速查詢使用)
+// 掃描器共用變數
 let lastScannedCode = '';
 let scanCooldownTimer = null;
 
@@ -881,81 +864,38 @@ function rebuildFilterSets() {
   updateCustodianSelects();
 }
 
-// 啟動雲端即時同步與狀態監聽 (含逾1年自動重置為未盤點檢查) - 修復版：解決一直連線中
+// 啟動雲端即時同步與狀態監聽 (含逾1年自動重置為未盤點檢查)
 async function initSystem() {
-  // 修復安全性警告：先匿名登入，取得 auth 權限後再存取資料庫
   try {
-    if (typeof firebase.auth === 'function' && !firebase.auth().currentUser) {
-      await firebase.auth().signInAnonymously();
-      console.log("Firebase 匿名登入成功，UID:", firebase.auth().currentUser?.uid);
+    if (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') {
+      if (!firebase.auth().currentUser) {
+        await firebase.auth().signInAnonymously();
+        console.log("Firebase 匿名登入成功，UID:", firebase.auth().currentUser?.uid);
+      }
     }
   } catch (e) {
-    console.warn("匿名登入失敗，將以離線模式運作:", e);
-    const badge = document.getElementById('cloudStatusBadge');
-    if (badge) {
-      badge.className = 'badge bg-warning text-dark ms-2 fw-normal';
-      badge.innerHTML = '<i class="bi bi-shield-lock me-1"></i>匿名驗證失敗-離線模式';
+    console.warn("匿名登入失敗，請確認 Firebase Console > Authentication > 匿名已啟用:", e);
+    if (e.code === 'auth/admin-restricted-operation' || e.code === 'auth/operation-not-allowed') {
+      console.error("請到 Firebase Console > Authentication > Sign-in method 啟用匿名登入");
     }
   }
 
   await initIndexedDB();
 
-  // 先嘗試從本機載入，讓畫面不會全空 (silent)
-  loadFromIDBFallback(false);
-
-  const badge = document.getElementById('cloudStatusBadge');
-  let hasConnectedOnce = false;
-  let connectTimeout = null;
-
-  const startConnectTimeout = () => {
-    clearTimeout(connectTimeout);
-    connectTimeout = setTimeout(() => {
-      if (!hasConnectedOnce && badge && badge.innerText.includes('連線中')) {
-        console.warn('Firebase 連線逾時 (5秒)，切換為離線模式');
-        badge.className = 'badge bg-secondary text-white ms-2 fw-normal';
-        badge.style.fontSize = '0.72rem';
-        badge.innerHTML = '<i class="bi bi-cloud-slash me-1"></i>離線暫存中 (連線逾時)';
-        loadFromIDBFallback(true);
-      }
-    }, 5000);
-  };
-
-  startConnectTimeout();
-
   // 監聽連線狀態
-  try {
-    firebaseDb.ref('.info/connected').on('value', (snap) => {
-      if (!badge) return;
-      if (snap.val() === true) {
-        hasConnectedOnce = true;
-        clearTimeout(connectTimeout);
-        badge.className = 'badge bg-success text-white ms-2 fw-normal';
-        badge.style.fontSize = '0.72rem';
-        badge.innerHTML = '<i class="bi bi-cloud-check-fill me-1"></i>雲端已同步';
-      } else {
-        if (hasConnectedOnce) {
-          badge.className = 'badge bg-warning text-dark ms-2 fw-normal';
-          badge.style.fontSize = '0.72rem';
-          badge.innerHTML = '<i class="bi bi-cloud-slash me-1"></i>離線暫存中';
-        } else {
-          startConnectTimeout();
-        }
-      }
-    });
-  } catch (e) {
-    console.error('連線狀態監聽失敗:', e);
-    clearTimeout(connectTimeout);
-    if (badge) {
-      badge.className = 'badge bg-danger text-white ms-2 fw-normal';
-      badge.style.fontSize = '0.72rem';
-      badge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>連線設定錯誤';
+  firebaseDb.ref('.info/connected').on('value', (snap) => {
+    const badge = document.getElementById('cloudStatusBadge');
+    if (snap.val() === true) {
+      badge.className = 'badge bg-success text-white ms-2 fw-normal';
+      badge.innerHTML = '<i class="bi bi-cloud-check-fill me-1"></i>雲端已同步';
+    } else {
+      badge.className = 'badge bg-warning text-dark ms-2 fw-normal';
+      badge.innerHTML = '<i class="bi bi-cloud-slash me-1"></i>離線暫存中';
     }
-  }
+  });
 
-  // 監聽財產資料節點 - 修復版含錯誤回調
+  // 監聽財產資料節點
   firebaseDb.ref('assets').on('value', (snapshot) => {
-    clearTimeout(connectTimeout);
-    hasConnectedOnce = true;
     const data = snapshot.val();
     assetsMap.clear();
     const expiredBatchUpdates = {};
@@ -967,7 +907,7 @@ async function initSystem() {
         const item = data[key];
         const ts = getRawTimestamp(item);
 
-        // 檢查：若已盤點且距離上次盤點超過 1 年，自動改為未盤點
+        // 檢查：若已盤點且距離上次盤點超過 1 年，自動改為未盤點 (保留上次盤點時間)
         if (item.checked && ts > 1 && (nowMs - ts >= ONE_YEAR_MS)) {
           item.checked = false;
           item.autoExpired = true;
@@ -992,65 +932,15 @@ async function initSystem() {
 
     // 若有滿一年自動重置的設備，批次寫回雲端
     if (Object.keys(expiredBatchUpdates).length > 0) {
-      firebaseDb.ref('assets').update(expiredBatchUpdates).catch(err=>console.warn('自動重置寫回失敗:', err));
+      firebaseDb.ref('assets').update(expiredBatchUpdates);
     }
 
     rebuildFilterSets();
     renderTable();
     updateStats();
     refreshQuickResultsIfActive();
-  }, (error) => {
-    clearTimeout(connectTimeout);
-    console.error('Firebase 讀取失敗:', error);
-    const badge2 = document.getElementById('cloudStatusBadge');
-    if (badge2) {
-      badge2.className = 'badge bg-danger text-white ms-2 fw-normal';
-      badge2.style.fontSize = '0.72rem';
-      if (error.code === 'PERMISSION_DENIED') {
-        badge2.innerHTML = '<i class="bi bi-shield-lock-fill me-1"></i>權限不足 (需改Rules)';
-        alert('Firebase 權限不足！請到 Firebase Console > Realtime Database > Rules 改為：{".read": true, ".write": true}');
-      } else {
-        badge2.innerHTML = '<i class="bi bi-cloud-slash me-1"></i>雲端讀取失敗 - 已切離線';
-      }
-    }
-    loadFromIDBFallback(true);
   });
 }
-
-function loadFromIDBFallback(showLog = false) {
-  if (!db) {
-    if (showLog) console.warn('IndexedDB 未初始化，無法載入本機快取');
-    return;
-  }
-  try {
-    const tx = db.transaction('assets', 'readonly');
-    const store = tx.objectStore('assets');
-    const req = store.getAll();
-    req.onsuccess = () => {
-      const results = req.result || [];
-      if (results.length > 0) {
-        if (assetsMap.size === 0) {
-          results.forEach(item => assetsMap.set(item.assetKey, item));
-          rebuildFilterSets();
-          renderTable();
-          updateStats();
-          refreshQuickResultsIfActive();
-          if (showLog) console.log(`已從本機 IndexedDB 載入 ${results.length} 筆`);
-        }
-      } else {
-        if (assetsMap.size === 0) {
-          renderTable();
-          updateStats();
-        }
-      }
-    };
-    req.onerror = (e) => console.warn('讀取 IndexedDB 失敗:', e);
-  } catch (e) {
-    console.warn('loadFromIDBFallback 異常:', e);
-  }
-}
-
-
 
 // =========================================================
 // 頂部主頁籤與簡易快速查詢邏輯 (雙頁籤 + 鍵盤後4碼 + 半螢幕相機)
@@ -1110,13 +1000,7 @@ async function switchQuickSubMode(subMode) {
   }
 }
 
-function updateQuickClockDisplay() {
-  const el = document.getElementById('quickLiveClock');
-  if (!el) return;
-  const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  el.innerText = `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-}
+function updateQuickClockDisplay() { /* 已移除目前時間顯示 */ }
 
 function startQuickClock() {
   stopQuickClock();
@@ -1156,9 +1040,6 @@ function backspaceQuickPin() {
 function clearQuickPin() {
   quickPin = '';
   currentQuickMatchedKeys = [];
-  const actionBar = document.getElementById('quickKeypadActionBar');
-  if (actionBar) { actionBar.style.display = 'none'; actionBar.innerHTML = ''; }
-
   updateQuickPinUI();
   const container = document.getElementById('quickResultContainer');
   if (container) {
@@ -1218,8 +1099,6 @@ function executeQuickPinSearch(pin4) {
     renderQuickResultCards(matches, `末 4 碼 [${pin4}] 查詢結果`, false);
   } else {
     playBeep(320, 0.2);
-    const actionBar = document.getElementById('quickKeypadActionBar');
-    if (actionBar) { actionBar.style.display = 'none'; actionBar.innerHTML = ''; }
     const container = document.getElementById('quickResultContainer');
     container.innerHTML = `
       <div class="alert alert-danger d-flex align-items-center shadow-sm mb-0" role="alert">
@@ -1233,7 +1112,7 @@ function executeQuickPinSearch(pin4) {
   }
 }
 
-// 渲染簡易快速查詢的結果卡片 - 優化版：鍵盤模式按鈕移至鍵盤下方
+// 渲染簡易快速查詢的結果卡片 - 優化版：按鈕移至鍵盤下方 + 高度加倍
 function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighlight = false) {
   const container = document.getElementById('quickResultContainer');
   const actionBar = document.getElementById('quickKeypadActionBar');
@@ -1253,7 +1132,6 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
     </div>
   `;
 
-  // 鍵盤模式：將操作按鈕移到鍵盤下方快捷列
   const isKeypadMode = lastQuickResultSource === 'keypad';
   if (isKeypadMode && actionBar) {
     const firstItem = items[0];
@@ -1296,11 +1174,9 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
       checkStatusBadge = `<span class="badge bg-secondary fs-6"><i class="bi bi-circle me-1"></i>未盤點</span>`;
     }
 
-    // 鍵盤模式且為第1筆時，卡片底部不再顯示按鈕（已移到鍵盤下方）
     let bottomActionsHtml = '';
     if (isKeypadMode) {
       if (idx !== 0) {
-        // 第2筆以後的卡片仍保留按鈕在底部，方便操作多筆結果
         const actionCheckBtnInner = item.checked
           ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
                <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
@@ -1316,9 +1192,7 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
           </button>
         </div>`;
       }
-      // idx===0 時 bottomActionsHtml 保持空白
     } else {
-      // 相機模式維持原本底部按鈕
       const actionCheckBtnCam = item.checked
         ? `<button type="button" class="btn btn-outline-secondary fw-bold flex-fill py-4" style="min-height:3.8rem;font-size:1.15rem;" onclick="quickToggleAssetChecked('${item.assetKey}')">
              <i class="bi bi-arrow-counterclockwise me-1"></i>已盤點 (點擊取消)
@@ -1347,12 +1221,10 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
             ${statusBadge}
           </div>
         </div>
-
         <div class="mb-2">
           <div class="fs-5 fw-bold text-dark">${item.name}</div>
           <div class="small text-secondary">${item.spec || '無規格型號說明'}</div>
         </div>
-
         <div class="quick-info-grid mb-2">
           <div class="quick-info-item">
             <div class="text-muted" style="font-size: 0.75rem;">存放地點</div>
@@ -1371,15 +1243,12 @@ function renderQuickResultCards(items, headerTitle = '查詢結果', flashHighli
             <div class="small fw-semibold ${item.checked ? 'text-success' : 'text-secondary'} font-monospace">${item.checkedTime || '尚無紀錄'}</div>
           </div>
         </div>
-
         <div class="small text-muted mb-2 d-flex flex-wrap gap-3 px-1">
           <span>數量/單位：<strong>${item.qty || '1'} ${item.unit || ''}</strong></span>
           <span>總價：<strong>NT$ ${item.price ? Number(item.price).toLocaleString() : '-'}</strong></span>
         </div>
-
         ${item.notes ? `<div class="p-2 bg-info-subtle text-info-emphasis rounded small mb-2"><i class="bi bi-sticky-fill me-1"></i>備註：${item.notes}</div>` : ''}
         ${item.scrapReason ? `<div class="p-2 bg-danger-subtle text-danger-emphasis rounded small mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>報廢原因：${item.scrapReason}</div>` : ''}
-
         ${bottomActionsHtml}
       </div>
     `;
@@ -1436,7 +1305,7 @@ async function startQuickScanner() {
   if (isQuickScannerStarting) return;
   if (quickHtml5QrCode && quickHtml5QrCode.isScanning) return;
 
-  // 已移除舊彈窗掃描器，無需關閉
+  // 已移除舊彈窗掃描器
   isQuickScannerStarting = true;
 
   const readerEl = document.getElementById('quickReader');
@@ -1589,8 +1458,7 @@ function onQuickBarcodeScanned(decodedText) {
   clearTimeout(scanCooldownTimer);
   scanCooldownTimer = setTimeout(() => { lastScannedCode = ''; }, 2500);
 
-  const codeBox = document.getElementById('quickScannedCodeText');
-  if (codeBox) codeBox.innerText = cleanCode;
+  // 已移除掃描資產編號顯示
 
   if (found) {
     playBeep(987, 0.15);
@@ -2371,6 +2239,50 @@ function triggerVibration() {
   }
 }
 
+function onBarcodeScanned(decodedText) {
+  const { cleanCode, found } = findAssetByBarcode(decodedText);
+
+  if (cleanCode === lastScannedCode) return;
+  lastScannedCode = cleanCode;
+  clearTimeout(scanCooldownTimer);
+  scanCooldownTimer = setTimeout(() => { lastScannedCode = ''; }, 2500);
+
+  const feedback = document.getElementById('scanFeedback');
+  if (found) {
+    playBeep(987, 0.15);
+    triggerVibration();
+    
+    const now = new Date();
+    found.checked = true;
+    found.checkedTime = formatDateTime(now);
+    found.checkedTimestamp = now.getTime();
+    found.autoExpired = false;
+    if (!found.history) found.history = [];
+    found.history.push({ time: found.checkedTime, action: '相機掃碼盤點', note: '現場確認在用正常' });
+    saveAsset(found);
+    
+    scanSuccessCount++;
+    document.getElementById('scanCounterText').innerText = `本次掃描成功: ${scanSuccessCount} 件`;
+
+    feedback.className = "mt-2 p-2 rounded text-start text-white bg-success small";
+    void feedback.offsetWidth;
+    feedback.classList.add("animate-flash-5");
+    feedback.innerHTML = `
+      <div class="fw-bold fs-6"><i class="bi bi-check-circle-fill me-1"></i> [${found.assetNo || found.assetKey}] ${found.name}</div>
+      <div>地點: <strong>${found.location}</strong> | 保管人: <strong>${found.custodian}</strong></div>
+      <div class="mt-1 d-flex justify-content-end">
+        <button class="btn btn-sm btn-light py-0 px-2 fw-bold" onclick="openDetailModalFromScan('${found.assetKey}')">異動此設備</button>
+      </div>
+    `;
+    updateStats();
+  } else {
+    playBeep(320, 0.25);
+    feedback.className = "mt-2 p-2 rounded text-start text-white bg-danger small";
+    feedback.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> 條碼 [${cleanCode}] 查無對應設備！請確認是否已匯入清冊。`;
+  }
+}
+
+// 匯出包含最新狀態的 Excel 清冊
 function exportUpdatedExcel() {
   if (assetsMap.size === 0) {
     alert('目前尚無資料可供匯出。');
